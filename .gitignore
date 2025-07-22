@@ -1,0 +1,21 @@
+build and clion stuff
+.idea/
+cmake-build-debug/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.out
+*.log
+
+# external libs
+ffmpeg/
+SDL3-3.2.18/
+
+# video files (temp)
+*.VOB
