@@ -5,7 +5,7 @@
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
 
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL_main.h>
@@ -13,48 +13,15 @@
 #include "../include/common.h"
 #include "../include/init.h"
 #include "../include/playback.h"
+#include "../include/frame-queue.h"
 
-const char TEST_FILE_URL[] = "Z:/projects/airbud/VTS_01_1.VOB"; //TODO replace with actual file list
+/* runs on startup */
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
 
-static SDL_Window *window = NULL;
-static SDL_Renderer *renderer = NULL;
-
-// runs on startup
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) //TODO cli integration? maybe an easter egg?
-{
-    if (!sdl_init(&window, &renderer)) {
-        return SDL_APP_FAILURE;
-    } // Initialize SDL
-
-    FrameQueue *frameQueue = createFrameQueue(); // Queue of buffered frames
-    if (!frameQueue) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frameQueue\n");
+    *appstate = initialize();
+    if (*appstate == NULL) {
         return SDL_APP_FAILURE;
     }
-
-    volatile bool *decoder_exit_flag = malloc(sizeof(bool)); //Exit flag for decoder thread
-    if (!decoder_exit_flag) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate exit flag\n");
-        return SDL_APP_FAILURE;
-    }
-
-    PlaybackArgs *args = malloc(sizeof(PlaybackArgs));
-    args->shouldExit = decoder_exit_flag;
-    args->filename = TEST_FILE_URL;
-    args->queue = frameQueue;
-    SDL_Thread *playbackThread = SDL_CreateThread(AVPlayback, "playback", args);
-
-    //create the appstate struct
-    Appstate *state = malloc(sizeof(Appstate));
-    if (!appstate) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate codec context\n");
-        return SDL_APP_FAILURE;
-    }
-    //state->shouldExit = DecoderExitFlag;
-    state->queue = frameQueue;
-    state->stopBuffering = decoder_exit_flag;
-
-    *appstate = state;
 
     return SDL_APP_CONTINUE; /* carry on with the program!*/
 }
@@ -67,34 +34,60 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 
+//TODO THIS SHOULD NOT BE GLOBAL fix immedietly when done debugging
+struct frame *current_frame; //TODO make last between calls so current frame can be repeated if no new frame
+
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate) {
-    Appstate *state = (Appstate *) appstate;
+    app_state *state = (app_state *) appstate;
+
+    //TODO this should really be a render function in the playback file
 
     SDL_LockMutex(state->queue->mutex);
     if (state->queue->size > 0) {
+
         // frame in the queue
+        SDL_Log("queue is not empty");
+
+        struct frame *frameBuffer = dequeue_frame(state->queue);
+        if (!frameBuffer) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error receiving frame\n");
+        } else {
+            current_frame = frameBuffer;
+        }
     }
     SDL_UnlockMutex(state->queue->mutex);
 
-    //jsut make it debug that shit atm
 
-    //TODO remove all this and actually render the frames
-    const double now = ((double) SDL_GetTicks()) / 1000.0; /* convert from milliseconds to seconds. */
-    /* choose the color for the frame we will draw. The sine wave trick makes it fade between colors smoothly. */
-    const float red = (float) (0.5 + 0.5 * SDL_sin(now));
-    const float green = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 2 / 3));
-    const float blue = (float) (0.5 + 0.5 * SDL_sin(now + SDL_PI_D * 4 / 3));
-    SDL_SetRenderDrawColorFloat(renderer, red, green, blue, SDL_ALPHA_OPAQUE_FLOAT); /* new color, full alpha. */
+    //int64_t pts = pFrame->best_effort_timestamp;
+    //printf("Decoded frame: %dx%d, pts=%lld\n", frame->width, frame->height, pts);
+
+    if (current_frame == NULL) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "frame is null\n");
+        return SDL_APP_CONTINUE;
+    }
+
+    SDL_Texture *texture = SDL_CreateTexture(state->renderer,
+    SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
+    SDL_TEXTUREACCESS_STREAMING,
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT);
+
+    SDL_UpdateYUVTexture(texture,
+        NULL,               // entire texture
+        current_frame->video_frame->data[0], current_frame->video_frame->linesize[0],   // Y plane
+        current_frame->video_frame->data[1], current_frame->video_frame->linesize[1],   // U plane
+        current_frame->video_frame->data[2], current_frame->video_frame->linesize[2]);  // V plane
+
+    SDL_RenderClear(state->renderer);
+    SDL_RenderTexture(state->renderer, texture, NULL, NULL);  // whole texture to window
+    SDL_RenderPresent(state->renderer);
+
+    //SDL_Delay(16);
+    SDL_DestroyTexture(texture);
 
 
     //TODO menu layer/buttons
-
-    /* clear the window to the draw color. */
-    SDL_RenderClear(renderer);
-
-    /* put the newly-cleared rendering on the screen. */
-    SDL_RenderPresent(renderer);
 
     return SDL_APP_CONTINUE; /* carry on with the program! */
 }

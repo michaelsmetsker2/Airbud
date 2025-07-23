@@ -1,37 +1,41 @@
 /**
  * @file init.h
  *
- * contains basic initialization functions for SLD3
+ * Contains basic initialization functions for SD3
  * and appstate struct to carry data between sdl functions
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
 
 #ifndef INIT_H
 #define INIT_H
 
-#include "common.h"
 #include "../include/frame-queue.h"
 
 /**
- * Initialization for SDL3
- *
- * @param window ** to main window
- * @param renderer ** to main window renderer
- * @return bool true on success, false on failure
-*/
-bool sdl_init(SDL_Window **window, SDL_Renderer **renderer);
+ * @struct app_state
+ * @brief Struct for carrying basic info to all parts of the SDL program
+ */
+typedef struct app_state {
+    SDL_Window *window;                  /**< Main Window for the program */
+    SDL_Renderer *renderer;              /**< Main Renderer for the program */
+
+    SDL_Thread *decoder_thread;
+    volatile bool *stop_decoder_thread;  /**< The exit flag for the decoding thread */
+
+    frame_queue *queue;                   /**< render queue of buffered frames */
+
+    /* TODO game_state??? potentially idk */
+} app_state;
 
 /**
- * @struct Appstate
+ * @brief Initializes SDL and allocates the app_state struct
  *
- * Struct for carrying basic info to all parts of the SDL program
+ * This will also start the decoding thread on the starting file
+ *
+ * @return *app_state - pointer to an app_state struct containing critical SDL resources, or NULL on failure
  */
-typedef struct {
- FrameQueue *queue;             /*< render queue of buffered frames */
- volatile bool *stopBuffering;  /*< The exit flag for the decoding thread */
- //TODO gamestate??? potentially idk
-} Appstate;
+app_state *initialize();
 
 #endif //INIT_H

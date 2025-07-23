@@ -1,31 +1,30 @@
 /**
  * @file frame-queue.c
  *
- * helper functions for FrameQueues
+ * helper functions for frame and frame_queue structs
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
 
 #include "../include/frame-queue.h"
 
-void destroyFrame(Frame *frame) {
+void destroy_frame(struct frame *frame) {
     if (!frame) {
         return;
     }
 
-    if (frame->audioFrame) {
-        av_frame_free(&frame->audioFrame);
+    if (frame->audio_frame) {
+        av_frame_free(&frame->audio_frame);
     }
-    if (frame->videoFrame) {
-        av_frame_free(&frame->videoFrame);
+    if (frame->video_frame) {
+        av_frame_free(&frame->video_frame);
     }
-
     //TODO remove menu button data as well
 }
 
-FrameQueue *createFrameQueue() {
-    FrameQueue *queue = malloc(sizeof(FrameQueue));
+frame_queue *create_frame_queue() {
+    frame_queue *queue = malloc(sizeof(frame_queue));
     if (!queue) return NULL;
 
     queue->front = 0;
@@ -33,13 +32,13 @@ FrameQueue *createFrameQueue() {
     queue->size = 0;
 
     queue->mutex = SDL_CreateMutex();
-    queue->notEmpty = SDL_CreateCondition();
-    queue->notFull = SDL_CreateCondition();
+    queue->not_empty = SDL_CreateCondition();
+    queue->not_full = SDL_CreateCondition();
 
-    if (!queue->mutex || !queue->notEmpty || !queue->notFull) {
+    if (!queue->mutex || !queue->not_empty || !queue->not_full) {
         SDL_DestroyMutex(queue->mutex);
-        SDL_DestroyCondition(queue->notEmpty);
-        SDL_DestroyCondition(queue->notFull);
+        SDL_DestroyCondition(queue->not_empty);
+        SDL_DestroyCondition(queue->not_full);
         free(queue);
         return NULL;
     }
@@ -47,11 +46,10 @@ FrameQueue *createFrameQueue() {
     return queue;
 }
 
-bool enqueueFrame(FrameQueue *queue, Frame *frame) {
+bool enqueue_frame(frame_queue *queue, struct frame *frame) {
 
-    //queue full, should not even be called if this is the case
-    while (queue->size == FRAME_QUEUE_CAPACITY) {
-        SDL_UnlockMutex(queue->mutex);
+    //queue is full, should not even be called if this is the case
+    if (queue->size == FRAME_QUEUE_CAPACITY) {
         return false;
     }
 
@@ -59,28 +57,28 @@ bool enqueueFrame(FrameQueue *queue, Frame *frame) {
     queue->rear = (queue->rear + 1) % FRAME_QUEUE_CAPACITY;
     queue->size++;
 
-    SDL_SignalCondition(queue->notEmpty);
+    SDL_SignalCondition(queue->not_empty);
+
+    SDL_Log("frame queued pts=%lld", frame->video_frame->best_effort_timestamp); //TODO debugging removal
     return true;
 }
 
-Frame *dequeueFrame(FrameQueue *queue) {
+struct frame *dequeue_frame(frame_queue *queue) {
 
     // if queue is empty, shouldn't even be called if this is the case
     if (queue->size == 0) {
-        SDL_UnlockMutex(queue->mutex);
         return NULL;
     }
 
-    Frame *frame = queue->frames[queue->front];
+    struct frame *frame = queue->frames[queue->front];
     queue->front = (queue->front + 1) % FRAME_QUEUE_CAPACITY;
     queue->size--;
 
-
-    SDL_SignalCondition(queue->notFull);
+    SDL_SignalCondition(queue->not_full);
     return frame;
 }
 
-void destroyFrameQueue(FrameQueue *queue) {
+void destroy_frameQueue(frame_queue *queue) {
     if (!queue) return;
 
     SDL_LockMutex(queue->mutex); //TODO idk if this is needed, time will come
@@ -88,14 +86,14 @@ void destroyFrameQueue(FrameQueue *queue) {
     // free all frames in the queue
     for (int i = 0; i < FRAME_QUEUE_CAPACITY; i++) {
         if (queue->frames[i]) {
-            destroyFrame(queue->frames[i]);
+            destroy_frame(queue->frames[i]);
         }
     }
 
     SDL_UnlockMutex(queue->mutex); //TODO here as well
     SDL_DestroyMutex(queue->mutex);
 
-    SDL_DestroyCondition(queue->notEmpty);
-    SDL_DestroyCondition(queue->notFull);
+    SDL_DestroyCondition(queue->not_empty);
+    SDL_DestroyCondition(queue->not_full);
     free(queue);
 }

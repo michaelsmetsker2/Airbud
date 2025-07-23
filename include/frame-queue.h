@@ -6,79 +6,82 @@
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
+
 #ifndef FRAME_QUEUE_H
 #define FRAME_QUEUE_H
 
 #include "common.h"
 #include <libavutil/frame.h>
 
-#define FRAME_QUEUE_CAPACITY 16 // the max amount of frames to buffer
-
-
-/**
- * @struct Frame
- *
- * contains audio video and button data
-*/
-typedef struct {
-    AVFrame *videoFrame; /**< AVFrame that stores the video data */
-    AVFrame *audioFrame; /**< AVFrame that stores the audio data */
-    //menuButton buttons[]; /**< stores an array of all currently active buttons */ //TODO menu buttons definition needed
-} Frame;
+/** the max amount of frames to buffer */
+#define FRAME_QUEUE_CAPACITY 16
 
 /**
- * memory safe deletion of Frame struct
- *
- * @param frame pointer to Frame that will be destroyed
-*/
-void destroyFrame(Frame *frame);
-
-/**
- * @struct FrameQueue
- *
- * memory safe queue of frames 16 Frames other relevant data for rendering
-*/
-typedef struct {
-    Frame *frames[FRAME_QUEUE_CAPACITY];  /**< Circular buffer of Frame pointers */
-    int size;                             /**< Current number of frames in the queue */
-    int front;                            /**< Index of first Frame */
-    int rear;                             /**< Index of last Frame */
-
-    SDL_Mutex *mutex;                     /**< guards access from multiple threads to prevent data corruption */
-    SDL_Condition *notEmpty;              /**< Signaled when Frames are added */
-    SDL_Condition *notFull;               /**< Signaled when Frames are removed */
-} FrameQueue;
-
-/**
- * Creates a frame queue
- *
- * @return FrameQueue - pointer to the created queue
+ * @struct frame
+ * @brief contains audio video and button data
  */
-FrameQueue *createFrameQueue();
+struct frame {
+    AVFrame *video_frame;    /**< AVFrame that stores the video data */
+    AVFrame *audio_frame;    /**< AVFrame that stores the audio data */
+    //menu_button buttons[]; /**< stores an array of all currently active buttons */ //TODO menu buttons definition needed
+};
 
 /**
- * adds a Frame to the queue
+ * @brief memory safe deletion of frame struct
+ * @param frame pointer to frame that will be destroyed
+ */
+void destroy_frame(struct frame *frame);
+
+/**
+ * @struct frame_queue
+ * @brief memory safe queue of 16 frames
+ */
+typedef struct frame_queue {
+    struct frame *frames[FRAME_QUEUE_CAPACITY];  /**< Circular buffer of frame pointers */
+    int size;                                    /**< Current number of frames in the queue */
+    int front;                                   /**< Index of first frame */
+    int rear;                                    /**< Index of last frame */
+
+    SDL_Mutex *mutex;                            /**< Guards access from multiple threads to prevent data corruption */
+    SDL_Condition *not_empty;                    /**< Signaled when frames are added */
+    SDL_Condition *not_full;                     /**< Signaled when frames are removed */
+} frame_queue;
+
+/**
+ * @brief creates and populates a frame queue
+ * @return *frame_queue - pointer to the created queue
+ */
+frame_queue *create_frame_queue();
+
+/**
+ * @brief adds a frame to end of the queue
+ *
+ * does not internally handle mutex
  *
  * @param queue queue to be added to
  * @param frame frame to be added to the queue
- * @return bool - true on success false on failure
+ * @return true on success false on failure
  */
-bool enqueueFrame(FrameQueue *queue, Frame *frame);
+bool enqueue_frame(frame_queue *queue, struct frame *frame);
 
 /**
- * pops the first frame in the given queue
+ * @brief pops the first frame in the given queue
+ *
+ * does not internally handle mutex
  *
  * @param queue queue to pop from
  * @return Frame* - pointer to the frame that has been popped or NULL if empty
  */
-Frame *dequeueFrame(FrameQueue *queue);
+struct frame *dequeue_frame(frame_queue *queue);
 
 /**
- * destroys a FrameQueue freeing all associated resources
+ * @brief destroys a frame_queue freeing all associated resources
+ *
+ * CURRENTLY DOES INTERNALLY HANDLE MUTEX
  *
  * @param queue queue to be destroyed
  */
-void destroyFrameQueue(FrameQueue *queue);
+void destroy_frameQueue(frame_queue *queue);
 
 #endif //FRAME_QUEUE_H

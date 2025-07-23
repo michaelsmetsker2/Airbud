@@ -5,139 +5,146 @@
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
 
-#include "../include/playback.h"
-#include "../include/common.h"
-
-// ffmpeg libraries
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/frame.h>
 
+#include "../include/playback.h"
+#include "../include/common.h"
+
 Sint32 TIMEOUT_DELAY_MS = 125;
 
-int AVPlayback(void *data) {
-    const PlaybackArgs *args = (PlaybackArgs *) data;
+int play_file(void *data) {
+    const struct playback_args *args = (struct playback_args *) data;
 
-    AVFormatContext *AVContext = NULL;
+    AVFormatContext *file_context = NULL;
 
     // opens the file (only looks at header)
-    if (avformat_open_input(&AVContext, args->filename, NULL, NULL) < 0) {
+    if (avformat_open_input(&file_context, args->filename, NULL, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open the file");
-        return false;
+        return -1;
     }
     // finds the stream info
-    if (avformat_find_stream_info(AVContext, NULL) < 0) {
+    if (avformat_find_stream_info(file_context, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find stream info");
-        return false;
+        return -1;
     }
 
-    // find the index of the best video stream and decoded
-    const AVCodec *pVideoDecoder = NULL;
-    const int VIDEO_STREAM_INDEX = av_find_best_stream(AVContext, AVMEDIA_TYPE_VIDEO, -1, -1, &pVideoDecoder, 0);
-    if (VIDEO_STREAM_INDEX < 0 || !pVideoDecoder) {
+    // find the index of the best video stream and decoded //TODO p sure all these are the same
+    const AVCodec *video_codec = NULL;
+    const int video_stream_index = av_find_best_stream(file_context, AVMEDIA_TYPE_VIDEO, -1, -1, &video_codec, 0);
+    if (video_stream_index < 0 || !video_codec) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best video stream or decoder %d\n",
-                     VIDEO_STREAM_INDEX);
-        return false;
+                     video_stream_index);
+        return -1;
     }
-
-    const AVStream *pStream = AVContext->streams[VIDEO_STREAM_INDEX];
-    const AVCodecParameters *pCodecPar = pStream->codecpar;
 
     // Allocates memory for AVCodecContext
-    AVCodecContext *pVideoCodecCtx = avcodec_alloc_context3(pVideoDecoder);
-    if (!pVideoCodecCtx) {
+    AVCodecContext *video_codec_context = avcodec_alloc_context3(video_codec);
+    if (!video_codec_context) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate codec context\n");
-        return false;
+        return -1;
     }
+
     // Fills it with values
-    if (avcodec_parameters_to_context(pVideoCodecCtx, pCodecPar) < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy codec parameters\n");
-        return false;
+    { //variable declarations are just for readability //TODO i don't like this though
+        const AVStream *video_stream = file_context->streams[video_stream_index];
+        const AVCodecParameters *video_codec_parameters = video_stream->codecpar;
+
+        if (avcodec_parameters_to_context(video_codec_context, video_codec_parameters) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy codec parameters\n");
+            return -1;
+        }
     }
+
     // Opens decoder
-    if (avcodec_open2(pVideoCodecCtx, pVideoDecoder, NULL) < 0) {
+    if (avcodec_open2(video_codec_context, video_codec, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open codec\n");
-        return false;
+        return -1;
     }
 
     //alloc packet and frame
-    AVPacket *videoPacket = av_packet_alloc();
-    AVFrame *videoFrame = av_frame_alloc();
-    if (!videoPacket || !videoFrame) {
+    AVPacket *video_packet = av_packet_alloc();
+    AVFrame *video_frame = av_frame_alloc();
+    if (!video_packet || !video_frame) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate packet or frame\n");
         return SDL_APP_FAILURE;
     }
 
+    //av_dump_format(AVContext, 0, args->filename, 0); TODO debug shit remove or use
+
     //while there is unparsed data left in the file
-    while (!args->shouldExit && av_read_frame(AVContext, videoPacket) >= 0) {
+    while (!(*args->exit_flag) && av_read_frame(file_context, video_packet) >= 0) {
         //make sure it belongs to the right stream TODO make sure this check is needed / see if its used for audio as well in the loop
-        if (videoPacket->stream_index == VIDEO_STREAM_INDEX) {
-            if (avcodec_send_packet(pVideoCodecCtx, videoPacket) == 0) {
+        if (video_packet->stream_index == video_stream_index) {
+            if (avcodec_send_packet(video_codec_context, video_packet) == 0) {
                 //a full frame is ready
-                while (!args->shouldExit && avcodec_receive_frame(pVideoCodecCtx, videoFrame) == 0) {
-                    //clone the frame
-                    AVFrame *clonedVideoFrame = av_frame_clone(videoFrame);
-                    if (!clonedVideoFrame) {
+                while (!(*args->exit_flag) && avcodec_receive_frame(video_codec_context, video_frame) == 0) {
+
+                    AVFrame *cloned_video_frame = av_frame_clone(video_frame); //clone the frame
+                    if (!cloned_video_frame) {
                         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame\n");
                         break; //can't just return as cleanup is needed
                     }
 
-                    //wrap fram in struct
-                    Frame *frameWrapper = malloc(sizeof(Frame));
+                    //wrap decoded video frame in frame struct
+                    struct frame *frameWrapper = malloc(sizeof(struct frame));
                     if (!frameWrapper) {
-                        av_frame_free(&clonedVideoFrame);
+                        av_frame_free(&cloned_video_frame);
                         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frameWrapper\n");
                         break;
                     }
 
-                    frameWrapper->videoFrame = clonedVideoFrame;
-                    frameWrapper->audioFrame = NULL; //TODO audio implementation
+                    frameWrapper->video_frame = cloned_video_frame;
+                    frameWrapper->audio_frame = NULL; //TODO audio implementation
                     //TODO button implementation
 
                     //TODO should definitely make this while loop a function
                     //loop mutex is available and the queue is not full
-                    while (!args->shouldExit) {
+                    while (!(*args->exit_flag)) {
                         SDL_LockMutex(args->queue->mutex); // waits until mutex is unlocked
 
-                        if (!args->shouldExit && args->queue->size != FRAME_QUEUE_CAPACITY) {
+                        if (!(*args->exit_flag) && args->queue->size != FRAME_QUEUE_CAPACITY) {
                             //queue is not at capacity
-                            if (!enqueueFrame(args->queue, frameWrapper)) {
+                            if (!enqueue_frame(args->queue, frameWrapper)) {
                                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                                destroyFrame(frameWrapper);
+                                destroy_frame(frameWrapper);
                                 break;
                             }
                         } else {
                             //queue is at capacity
-                            if (SDL_WaitConditionTimeout(args->queue->notFull, args->queue->mutex, TIMEOUT_DELAY_MS)) {
-                                if (!enqueueFrame(args->queue, frameWrapper)) {
-                                    // successful queue
+                            if (SDL_WaitConditionTimeout(args->queue->not_full, args->queue->mutex, TIMEOUT_DELAY_MS)) {
+                                if (!enqueue_frame(args->queue, frameWrapper)) {
                                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                                    destroyFrame(frameWrapper);
+                                    destroy_frame(frameWrapper);
                                     break;
                                 }
                             } // timed out
                         }
                         SDL_UnlockMutex(args->queue->mutex);
-                    } //queue loop, please make me into a function
-                } //full frame decoded
-            } // if packet has info to decode
-        } // check index
-        av_packet_unref(videoPacket);
+                    }
+                }
+            }
+        }
+        av_packet_unref(video_packet);
     } // Read Packet loop
 
     // Flush decoder after file ends
-    avcodec_send_packet(pVideoCodecCtx, NULL);
-    while (avcodec_receive_frame(pVideoCodecCtx, videoFrame) == 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Flushed frame: %dx%d, pts=%lld\n", videoFrame->width,
-                     videoFrame->height, videoFrame->pts);
+    avcodec_send_packet(video_codec_context, NULL);
+    while (avcodec_receive_frame(video_codec_context, video_frame) == 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Flushed frame: %dx%d, pts=%lld\n", video_frame->width,
+                     video_frame->height, video_frame->pts);
         // Process flushed frames as well
     }
 
-    av_frame_free(&videoFrame);
-    av_packet_free(&videoPacket);
+    av_frame_free(&video_frame);
+    av_packet_free(&video_packet);
+
+
+    //TODO set stop_decoder_thread to false again? or maybe at begining of file
 
     return true;
 
@@ -170,58 +177,5 @@ int AVPlayback(void *data) {
     if (avcodec_open2(audio_codec_ctx, audioDecoder, NULL) < 0) {
         printf("couldn't open audio codec\n");
         return SDL_APP_FAILURE;
-    }
-
-    /*
-    if (frame->pts != AV_NOPTS_VALUE) {
-        double pts_seconds = frame->pts * av_q2d(stream->time_base);
-        printf("Decoded frame: %dx%d, pts=%lld (%.3f sec)\n", frame->width, frame->height, frame->pts, pts_seconds);
-    } else {
-        printf("Decoded frame: %dx%d, pts=NOPTS\n", frame->width, frame->height);
-    }
-
-
-    while (av_read_frame(AVContext, pPacket) >= 0) {
-
-        if (pPacket->stream_index == VIDEO_STREAM_INDEX) {
-            if (avcodec_send_packet(pVideoCodecCtx, pPacket) == 0) {
-                while (avcodec_receive_frame(pVideoCodecCtx, pFrame) == 0) {
-
-                    int64_t pts = pFrame->best_effort_timestamp;
-                    //printf("Decoded frame: %dx%d, pts=%lld\n", frame->width, frame->height, pts);
-
-                    SDL_Texture *texture = SDL_CreateTexture(renderer,
-                    SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
-                    SDL_TEXTUREACCESS_STREAMING,
-                    pVideoCodecCtx->width,
-                    pVideoCodecCtx->height);
-
-                    SDL_UpdateYUVTexture(texture,
-                        NULL,               // entire texture
-                        pFrame->data[0], pFrame->linesize[0],   // Y plane
-                        pFrame->data[1], pFrame->linesize[1],   // U plane
-                        pFrame->data[2], pFrame->linesize[2]);  // V plane
-
-                    SDL_RenderClear(renderer);
-                    SDL_RenderTexture(renderer, texture, NULL, NULL);  // whole texture to window
-                    SDL_RenderPresent(renderer);
-
-                    //SDL_Delay(16);
-                    SDL_DestroyTexture(texture);
-                }
-            }
-        }
-        av_packet_unref(pPacket);
-    }
-
-    // Flush decoder after file ends
-    avcodec_send_packet(pVideoCodecCtx, NULL);
-    while (avcodec_receive_frame(pVideoCodecCtx, pFrame) == 0) {
-        printf("Flushed frame: %dx%d, pts=%lld\n", pFrame->width, pFrame->height, pFrame->pts);
-        // Process flushed frames as well
-    }
-
-    av_frame_free(&pFrame);
-    av_packet_free(&pPacket);
     */
-}
+    }

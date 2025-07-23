@@ -5,39 +5,34 @@
  *
  * @author Michael Metsker
  * @version 1.0
-*/
+ */
 
-#ifndef DECODE_H
-#define DECODE_H
+#ifndef PLAYBACK_H
+#define PLAYBACK_H
 
 #include "common.h"
 #include "../include/frame-queue.h"
 
 /**
- * @struct PlaybackArgs
- *
- * Parameters for the AVPlayback thread.
-*/
-typedef struct {
-    volatile bool *shouldExit; /**< default false, whether the thread should stop executing */
+ * @struct playback_args
+ * @brief Parameters for the decoder thread.
+ */
+struct playback_args {
+    volatile bool *exit_flag; /**< default false, whether the thread should stop executing */
     const char *filename;     /**< file to be played back */
-    FrameQueue *queue;        /**< queue to add frames to */
-} PlaybackArgs;
+    frame_queue *queue;       /**< queue to add frames to */
+};
 
 /**
- * manages decoding frames and audio from a file, then adds decoded data to a frame queue
+ * @brief manages decoding frames and audio from a file, then adds decoded data to a frame queue
  *
- * @param data pointer to PlaybackArgs struct
- * @return 0 if clean shutdown -1 if error
-*/
-int AVPlayback(void *data);
+ * @param data pointer to playback_args struct
+ * @return 0 if clean shutdown
+ */
+int play_file(void *data);
 
-/**
- * TODO
- *
-*/
-bool attemptEnqueue();
+//TODO decode function
 
 //TODO will prolly need a switch file function
 
-#endif //DECODE_H
+#endif //PLAYBACK_H
