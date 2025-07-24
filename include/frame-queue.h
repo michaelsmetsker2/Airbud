@@ -19,11 +19,11 @@
 
 /**
  * @struct frame
- * @brief contains audio video and button data
+ * @brief contains audio video and button data // TODO oudtated
  */
 struct frame {
     AVFrame *video_frame;    /**< AVFrame that stores the video data */
-    AVFrame *audio_frame;    /**< AVFrame that stores the audio data */
+    AVFrame *audio_frame;    /**< AVFrame that stores the audio data */ //TODO get rid of this
     //menu_button buttons[]; /**< stores an array of all currently active buttons */ //TODO menu buttons definition needed
 };
 

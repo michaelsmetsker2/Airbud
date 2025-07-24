@@ -58,8 +58,6 @@ bool enqueue_frame(frame_queue *queue, struct frame *frame) {
     queue->size++;
 
     SDL_SignalCondition(queue->not_empty);
-
-    SDL_Log("frame queued pts=%lld", frame->video_frame->best_effort_timestamp); //TODO debugging removal
     return true;
 }
 

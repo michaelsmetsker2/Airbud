@@ -1,63 +1,73 @@
-//
-// Created by micha on 7/23/2025.
-//
+/**
+ * Decodes video packets //todo update this to include audio depending on my decisions
+ *
+ * @author Michael Metsker
+ * @version 1.0
+ */
 
 #include "decode.h"
 
+#include <libavcodec/avcodec.h>
 
-void decode_video(AVPacket *packet) {
+static const Sint32 TIMEOUT_DELAY_MS = 125;
 
+void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
+                  AVFrame *frame, frame_queue *queue,
+                  volatile bool *exit_flag)
+{
     //decodes packet
-    if (avcodec_send_packet(video_codec_context, packet) == 0) {
-        //a full frame is ready (in case multiple frames in a single packed)
-        while (!(*args->exit_flag) && avcodec_receive_frame(video_codec_context, video_frame) == 0) {
-            if decode_video_frame
+    if (avcodec_send_packet(dec_ctx, packet) != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't decode video packet");
+    }
 
+    //a full frame is ready
+    while (!(*exit_flag) && avcodec_receive_frame(dec_ctx, frame) == 0) {
 
+        //clone the frame
+        AVFrame *frame_copy = av_frame_clone(frame);
+        if (!frame_copy) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame\n");
+            *exit_flag = true;
+            break;
+        }
 
-            AVFrame *cloned_video_frame = av_frame_clone(video_frame); //clone the frame
-            if (!cloned_video_frame) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame\n");
-                break; //can't just return as cleanup is needed
-            }
+        //wrap decoded video frame in frame struct
+        struct frame *frame_wrapper = malloc(sizeof(struct frame));
+        if (!frame_wrapper) {
+            av_frame_free(&frame_copy);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frameWrapper\n");
+            *exit_flag = true;
+            break;
+        }
 
-            //wrap decoded video frame in frame struct
-            struct frame *frameWrapper = malloc(sizeof(struct frame));
-            if (!frameWrapper) {
-                av_frame_free(&cloned_video_frame);
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frameWrapper\n");
+        frame_wrapper->video_frame = frame_copy;
+        // TODO this is where game_state might be assigned idk yet and buttons
+
+        SDL_LockMutex(queue->mutex); //waits until mutex is unlocked
+
+        if (queue->size != FRAME_QUEUE_CAPACITY) {
+            //queue is not at capacity
+
+            if (!enqueue_frame(queue, frame_wrapper)) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
+                destroy_frame(frame_wrapper);
+                *exit_flag = true;
+                SDL_UnlockMutex(queue->mutex);
                 break;
             }
-
-            frameWrapper->video_frame = cloned_video_frame;
-            frameWrapper->audio_frame = NULL; //TODO audio implementation
-            //TODO button implementation
-
-            //TODO should definitely make this while loop a function
-            //loop mutex is available and the queue is not full
-            while (!(*args->exit_flag)) {
-                SDL_LockMutex(args->queue->mutex); // waits until mutex is unlocked
-
-                if (!(*args->exit_flag) && args->queue->size != FRAME_QUEUE_CAPACITY) {
-                    //queue is not at capacity
-                    if (!enqueue_frame(args->queue, frameWrapper)) {
-                        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                        destroy_frame(frameWrapper);
-                        break;
-                    }
-                } else {
-                    //queue is at capacity
-                    if (SDL_WaitConditionTimeout(args->queue->not_full, args->queue->mutex, TIMEOUT_DELAY_MS)) {
-                        if (!enqueue_frame(args->queue, frameWrapper)) {
-                            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                            destroy_frame(frameWrapper);
-                            break;
-                        }
-                    } // timed out
+        } else {
+            //queue is at capacity
+            if (SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
+                if (!enqueue_frame(queue, frame_wrapper)) {
+                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue timed out\n");
+                    destroy_frame(frame_wrapper);
+                    *exit_flag = true;
+                    SDL_UnlockMutex(queue->mutex);
+                    break;
                 }
-                SDL_UnlockMutex(args->queue->mutex);
             }
         }
+        SDL_UnlockMutex(queue->mutex);
     }
 
 }

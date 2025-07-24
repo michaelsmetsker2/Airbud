@@ -26,14 +26,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
     return SDL_APP_CONTINUE; /* carry on with the program!*/
 }
 
-/* This function runs when a new event (mouse input, keypresses, etc.) occurs. */
-SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
-    }
-    return SDL_APP_CONTINUE; /* carry on with the program! */
-}
-
 //TODO THIS SHOULD NOT BE GLOBAL fix immedietly when done debugging
 struct frame *current_frame; //TODO make last between calls so current frame can be repeated if no new frame
 
@@ -47,7 +39,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     if (state->queue->size > 0) {
 
         // frame in the queue
-        SDL_Log("queue is not empty");
 
         struct frame *frameBuffer = dequeue_frame(state->queue);
         if (!frameBuffer) {
@@ -91,6 +82,15 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     return SDL_APP_CONTINUE; /* carry on with the program! */
 }
+
+/* This function runs when a new event (mouse input, keypresses, etc.) occurs. */
+SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+    if (event->type == SDL_EVENT_QUIT) {
+        return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
+    }
+    return SDL_APP_CONTINUE; /* carry on with the program! */
+}
+
 
 /* This function runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
