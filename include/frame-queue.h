@@ -1,7 +1,7 @@
 /**
  * @file frame-queue.h
  *
- * Contains a (hopefully) memory safe way of adding av frames to a queue
+ * Contains a memory safe queue of av frames
  * that will be accessible to multiple threads simultaneously
  *
  * @author Michael Metsker
@@ -19,7 +19,7 @@
 
 /**
  * @struct frame
- * @brief contains audio video and button data // TODO oudtated
+ * @brief contains audio video and button data // TODO outdated
  */
 struct frame {
     AVFrame *video_frame;    /**< AVFrame that stores the video data */

@@ -1,4 +1,5 @@
 /**
+ * @file decode.c
  * Decodes video packets //todo update this to include audio depending on my decisions
  *
  * @author Michael Metsker
@@ -9,7 +10,7 @@
 
 #include <libavcodec/avcodec.h>
 
-static const Sint32 TIMEOUT_DELAY_MS = 125;
+static const Sint32 TIMEOUT_DELAY_MS = 125; //TODO prolly define in common
 
 void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
                   AVFrame *frame, frame_queue *queue,

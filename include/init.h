@@ -18,13 +18,13 @@
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
 typedef struct app_state {
-    SDL_Window *window;                  /**< Main Window for the program */
-    SDL_Renderer *renderer;              /**< Main Renderer for the program */
+    SDL_Window      *window;                /**< Main Window for the program */
+    SDL_Renderer    *renderer;              /**< Main Renderer for the program */
 
-    SDL_Thread *decoder_thread;
-    volatile bool *stop_decoder_thread;  /**< The exit flag for the decoding thread */
+    SDL_Thread      *decoder_thread;        /**< Pointer to the thread that handles decoding */
+    volatile bool   *stop_decoder_thread;   /**< The exit flag for the decoding thread */
 
-    frame_queue *queue;                   /**< render queue of buffered frames */
+    frame_queue     *queue;                 /**< render queue of buffered frames */
 
     /* TODO game_state??? potentially idk */
 } app_state;

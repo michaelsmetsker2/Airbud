@@ -1,4 +1,5 @@
 /**
+ * @file decode.h
  * Decoding functions for audio and video
  *
  * @author Michael Metkser
