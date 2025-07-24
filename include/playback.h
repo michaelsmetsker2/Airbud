@@ -31,8 +31,6 @@ struct playback_args {
  */
 int play_file(void *data);
 
-//TODO decode function
-
 //TODO will prolly need a switch file function
 
 #endif //PLAYBACK_H

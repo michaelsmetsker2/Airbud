@@ -10,7 +10,6 @@
 #include "../include/init.h"
 #include "../include/common.h"
 #include "../include/playback.h"
-#include "../include/common.h"
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");

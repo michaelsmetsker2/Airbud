@@ -15,7 +15,7 @@
 #include <libavutil/frame.h>
 
 /** the max amount of frames to buffer */
-#define FRAME_QUEUE_CAPACITY 16
+#define FRAME_QUEUE_CAPACITY 8
 
 /**
  * @struct frame
