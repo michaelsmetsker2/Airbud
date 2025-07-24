@@ -13,8 +13,8 @@
 #include <libavcodec/packet.h>
 #include <libavutil/frame.h>
 
-#include "../include/common.h"
-#include "../include/frame-queue.h"
+#include <common.h>
+#include <frame-queue.h>
 
 
 /**

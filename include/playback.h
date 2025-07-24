@@ -10,12 +10,8 @@
 #ifndef PLAYBACK_H
 #define PLAYBACK_H
 
-/* ik all the includes like this are yucky because they are basically global but harder to find */ // TODO
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-
-#include "common.h"
-#include "../include/frame-queue.h"
+#include <common.h>
+#include <frame-queue.h>
 
 /**
  * @struct playback_args

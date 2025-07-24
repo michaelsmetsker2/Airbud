@@ -6,11 +6,11 @@
  * @version 1.0
  */
 
-#include "decode.h"
+#include <decode.h>
 
 #include <libavcodec/avcodec.h>
 
-static const Sint32 TIMEOUT_DELAY_MS = 125; //TODO prolly define in common
+static const Sint32 TIMEOUT_DELAY_MS = 125;
 
 void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
                   AVFrame *frame, frame_queue *queue,
@@ -22,7 +22,7 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
     }
 
     //a full frame is ready
-    while (!(*exit_flag) && avcodec_receive_frame(dec_ctx, frame) == 0) {
+    while (!*exit_flag && avcodec_receive_frame(dec_ctx, frame) == 0) {
 
         //clone the frame
         AVFrame *frame_copy = av_frame_clone(frame);
@@ -56,7 +56,8 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
                 SDL_UnlockMutex(queue->mutex);
                 break;
             }
-        } else {
+        }
+        else {
             //queue is at capacity
             if (SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
                 if (!enqueue_frame(queue, frame_wrapper)) {
@@ -70,6 +71,5 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
         }
         SDL_UnlockMutex(queue->mutex);
     }
-
 }
 

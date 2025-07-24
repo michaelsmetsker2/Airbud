@@ -7,7 +7,7 @@
  * @version 1.0
  */
 
-#include "../include/frame-queue.h"
+#include <frame-queue.h>
 
 void destroy_frame(struct frame *frame) {
     if (!frame) {

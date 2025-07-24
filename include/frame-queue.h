@@ -11,7 +11,7 @@
 #ifndef FRAME_QUEUE_H
 #define FRAME_QUEUE_H
 
-#include "common.h"
+#include <common.h>
 #include <libavutil/frame.h>
 
 /** the max amount of frames to buffer */

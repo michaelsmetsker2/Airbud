@@ -11,7 +11,7 @@
 #ifndef INIT_H
 #define INIT_H
 
-#include "../include/frame-queue.h"
+#include <frame-queue.h>
 
 /**
  * @struct app_state

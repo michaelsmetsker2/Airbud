@@ -7,10 +7,12 @@
  * @version 1.0
  */
 
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 
-#include "../include/playback.h"
-#include "../include/common.h"
-#include "../include/decode.h"
+#include <playback.h>
+#include <common.h>
+#include <decode.h>
 
 //av_dump_format(AVContext, 0, args->filename, 0); TODO useful debug
 
@@ -131,7 +133,6 @@ int play_file(void *data) {
 
             // TODO make this return a value so it can error out, can change if dropping frames tends to happen
             decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->queue, args->exit_flag);
-
         }
         av_packet_unref(media_ctx.packet);
     }

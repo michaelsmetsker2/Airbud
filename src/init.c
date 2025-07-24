@@ -7,9 +7,9 @@
  * @version 1.0
  */
 
-#include "../include/init.h"
-#include "../include/common.h"
-#include "../include/playback.h"
+#include <init.h>
+#include <common.h>
+#include <playback.h>
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
