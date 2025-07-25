@@ -40,7 +40,6 @@ bool render_frame(const app_state *state) { //TODO prolly reuse texture? YES
     SCREEN_WIDTH,
     SCREEN_HEIGHT);
 
-
     SDL_UpdateYUVTexture(texture,
         NULL,               // entire texture
         current_frame->data[0], current_frame->linesize[0],   // Y plane
@@ -52,7 +51,6 @@ bool render_frame(const app_state *state) { //TODO prolly reuse texture? YES
     SDL_RenderTexture(state->renderer, texture, NULL, NULL);  // whole texture to window
     SDL_RenderPresent(state->renderer);
 
-    //SDL_Delay(16);
     SDL_DestroyTexture(texture);
 
     SDL_Delay(1); //TODO temporary debug, lets gpu finish rendering the texture befure freeing AVFrame

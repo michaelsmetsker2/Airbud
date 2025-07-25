@@ -25,6 +25,7 @@
  * @param queue Queue to add frames to
  * @param exit_flag Exit flag for early exit
  */
-void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, frame_queue *queue, volatile bool *exit_flag);
+void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, frame_queue *queue,
+                  volatile bool *exit_flag);
 
 #endif //DECODE_H

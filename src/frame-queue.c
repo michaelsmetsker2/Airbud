@@ -20,13 +20,13 @@ frame_queue *create_frame_queue(const int capacity) {
     frame_queue *queue = malloc(sizeof(frame_queue));
     if (!queue) return NULL;
 
+    queue->capacity = capacity;
     queue->frames = malloc(sizeof(AVFrame*)* queue->capacity);
     if (!queue->frames) {
         free(queue);
         return NULL;
     }
 
-    queue->capacity = capacity;
     queue->size = 0;
     queue->front = 0;
     queue->rear = 0;

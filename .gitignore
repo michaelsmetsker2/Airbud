@@ -1,5 +1,5 @@
 .idea/
-cmake-build-debug/
+build/
 
 # OS junk
 .DS_Store

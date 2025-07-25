@@ -24,15 +24,15 @@ static const int AUDIO_BUFFER_CAP = 40;
  * @brief memory safe queue of 16 frames
  */
 typedef struct frame_queue {
-    AVFrame **frames;                   /**< Dynamic circular buffer of frame pointers */
-    int capacity;                       /**< Max capacity of the array */
-    int size;                           /**< Current number of frames in the queue */
-    int front;                          /**< Index of first frame */
-    int rear;                           /**< Index of last frame */
+    AVFrame **frames;         /**< Dynamic circular buffer of frame pointers */
+    int capacity;             /**< Max capacity of the array */
+    int size;                 /**< Current number of frames in the queue */
+    int front;                /**< Index of first frame */
+    int rear;                 /**< Index of last frame */
 
-    SDL_Mutex *mutex;                   /**< Guards access from multiple threads to prevent data corruption */
-    SDL_Condition *not_empty;           /**< Signaled when frames are added */
-    SDL_Condition *not_full;            /**< Signaled when frames are removed */
+    SDL_Mutex *mutex;         /**< Guards access from multiple threads to prevent data corruption */
+    SDL_Condition *not_empty; /**< Signaled when frames are added */
+    SDL_Condition *not_full;  /**< Signaled when frames are removed */
 } frame_queue;
 
 /**

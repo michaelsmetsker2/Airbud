@@ -15,7 +15,6 @@
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
 
-    // TODO initialize more than just video
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return NULL;

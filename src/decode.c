@@ -66,4 +66,3 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
         SDL_UnlockMutex(queue->mutex);
     }
 }
-
