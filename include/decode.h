@@ -13,9 +13,8 @@
 #include <libavcodec/packet.h>
 #include <libavutil/frame.h>
 
-#include <common.h>
 #include <frame-queue.h>
-
+#include <stdbool.h>
 
 /**
  * Decodes a video packet and queues and queues the resulting frames if any.
@@ -27,7 +26,5 @@
  * @param exit_flag Exit flag for early exit
  */
 void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, frame_queue *queue, volatile bool *exit_flag);
-
-
 
 #endif //DECODE_H

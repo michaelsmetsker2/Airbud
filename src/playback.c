@@ -10,8 +10,9 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+#include <SDL3/SDL.h>
+
 #include <playback.h>
-#include <common.h>
 #include <decode.h>
 
 //av_dump_format(AVContext, 0, args->filename, 0); TODO useful debug
@@ -23,16 +24,16 @@
 struct media_context {
     AVFormatContext *format_context;
 
-    AVCodecContext  *video_codec_ctx;   /**< decodec for decoding the video stream */
+    AVCodecContext  *video_codec_ctx;        /**< decodec for decoding the video stream */
     int             video_stream_index;      /**< index of the video stream to be decoded */ //TODO const????
-    AVFrame         *video_frame;           /**< reused videoframe, its data is copied to a queue */
+    AVFrame         *video_frame;            /**< reused videoframe, its data is copied to a queue */
 
     // Audio
     AVCodecContext  *audio_codec_ctx;       /**< decodec for decoding the audio stream */
     int             audio_stream_index;     /**< index of the audio stream to be decoded */ //TODO const????
     AVFrame         *audio_frame;       //todo
 
-    AVPacket        *packet;            /**< packet of decoded data of any stream */
+    AVPacket        *packet;                /**< packet of decoded data of any stream */
 };
 
 /**
@@ -63,25 +64,37 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open the file");
         return false;
     }
-
     // finds the stream info
     if (avformat_find_stream_info(media_ctx->format_context, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find stream info");
         return false;
     }
 
-    // find the index of the best video stream and decodec //TODO p sure all these are the same
+    /* Finds best video codec and stream */ //TODO p sure all these are the same
     const AVCodec *video_codec = NULL;
     media_ctx->video_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_VIDEO, -1, -1, &video_codec, 0);
     if (media_ctx->video_stream_index < 0 || !video_codec) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best video stream or decoder \n");
         return false;
     }
+    /* Finds best audio codec and stream */
+    const AVCodec *audio_codec = NULL;
+    media_ctx->audio_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &audio_codec, 0);
+    if (media_ctx->audio_stream_index < 0 || !video_codec) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best audio stream or decoder \n"); //TODO potentially not fatal?
+        return false;
+    }
 
-    // Allocates memory for AVCodecContext //TODO same here
+    // Allocates memory for video codec context
     media_ctx->video_codec_ctx = avcodec_alloc_context3(video_codec);
     if (!media_ctx->video_codec_ctx) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate codec context\n");
+        return false;
+    }
+    // Allocates memory for audio codec context
+    media_ctx->audio_codec_ctx = avcodec_alloc_context3(audio_codec);
+    if (!media_ctx->audio_codec_ctx) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate audio codec context\n");
         return false;
     }
 
@@ -91,6 +104,11 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy codec parameters\n");
             return false;
         }
+        const AVCodecParameters *audio_codec_parameters = media_ctx->format_context->streams[media_ctx->audio_stream_index]->codecpar;
+        if (avcodec_parameters_to_context(media_ctx->audio_codec_ctx, audio_codec_parameters) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy audio codec parameters\n");
+            return false;
+        }
     }
 
     // Opens decoder
@@ -98,11 +116,16 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open codec\n");
         return false;
     }
+    if (avcodec_open2(media_ctx->audio_codec_ctx, audio_codec, NULL) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open audio codec\n");
+        return false;
+    }
 
     //alloc packet and video_frame
     media_ctx->packet = av_packet_alloc();
     media_ctx->video_frame = av_frame_alloc();
-    if (!media_ctx->packet || !media_ctx->video_frame) {
+    media_ctx->audio_frame = av_frame_alloc();
+    if (!media_ctx->packet || !media_ctx->video_frame || !media_ctx->audio_frame) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate packet or frame\n");
         return false;
     }
@@ -123,13 +146,13 @@ int play_file(void *data) {
     }
 
     //while there is unparsed data left in the file
-    while (!(*args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+    while (!*args->exit_flag && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
         //if stream index is audio, run that shit
 
 
         //does packet belong to the video stream TODO make sure this check is needed
-        if (!(*args->exit_flag) && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
+        if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
             // TODO make this return a value so it can error out, can change if dropping frames tends to happen
             decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->queue, args->exit_flag);

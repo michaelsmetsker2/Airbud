@@ -6,9 +6,15 @@
  * @version 1.0
  */
 
+#include <SDL3/SDL.h>
+
+#include <libavutil/frame.h>
+#include <libavcodec/avcodec.h>
+
+#include <stdbool.h>
 #include <decode.h>
 
-#include <libavcodec/avcodec.h>
+#include <frame-queue.h>
 
 static const Sint32 TIMEOUT_DELAY_MS = 125;
 
@@ -32,26 +38,14 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
             break;
         }
 
-        //wrap decoded video frame in frame struct
-        struct frame *frame_wrapper = malloc(sizeof(struct frame));
-        if (!frame_wrapper) {
-            av_frame_free(&frame_copy);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frameWrapper\n");
-            *exit_flag = true;
-            break;
-        }
-
-        frame_wrapper->video_frame = frame_copy;
-        // TODO this is where game_state might be assigned idk yet and buttons
-
         SDL_LockMutex(queue->mutex); //waits until mutex is unlocked
 
-        if (queue->size != FRAME_QUEUE_CAPACITY) {
+        if (queue->size != VIDEO_BUFFER_CAP) {
             //queue is not at capacity
 
-            if (!enqueue_frame(queue, frame_wrapper)) {
+            if (!enqueue_frame(queue, frame_copy)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                destroy_frame(frame_wrapper);
+                av_frame_free(&frame_copy);
                 *exit_flag = true;
                 SDL_UnlockMutex(queue->mutex);
                 break;
@@ -60,9 +54,9 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
         else {
             //queue is at capacity
             if (SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
-                if (!enqueue_frame(queue, frame_wrapper)) {
+                if (!enqueue_frame(queue, frame_copy)) {
                     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue timed out\n");
-                    destroy_frame(frame_wrapper);
+                    av_frame_free(&frame_copy);
                     *exit_flag = true;
                     SDL_UnlockMutex(queue->mutex);
                     break;

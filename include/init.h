@@ -12,6 +12,8 @@
 #define INIT_H
 
 #include <frame-queue.h>
+#include <SDL3/SDL.h>
+#include <stdbool.h>
 
 /**
  * @struct app_state
@@ -25,6 +27,7 @@ typedef struct app_state {
     volatile bool   *stop_decoder_thread;   /**< The exit flag for the decoding thread */
 
     frame_queue     *queue;                 /**< render queue of buffered frames */
+    //TODO audio_queue
 
     /* TODO game_state??? potentially idk */
 } app_state;

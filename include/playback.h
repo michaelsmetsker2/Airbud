@@ -10,8 +10,9 @@
 #ifndef PLAYBACK_H
 #define PLAYBACK_H
 
-#include <common.h>
 #include <frame-queue.h>
+#include <stdbool.h>
+
 
 /**
  * @struct playback_args

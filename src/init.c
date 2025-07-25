@@ -7,15 +7,16 @@
  * @version 1.0
  */
 
-#include <init.h>
+#include <SDL3/SDL.h>
 #include <common.h>
+#include <init.h>
 #include <playback.h>
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
 
     // TODO initialize more than just video
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return NULL;
     }
@@ -34,7 +35,7 @@ app_state *initialize() {
     }
 
     // Creates a frame_queue for the app
-    state->queue = create_frame_queue();
+    state->queue = create_frame_queue(VIDEO_BUFFER_CAP);
     if (!state->queue) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frame_queue\n");
         return NULL;

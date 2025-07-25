@@ -10,8 +10,8 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#include <common.h>
 #include <init.h>
+#include <stdbool.h>
 
 /**
  * @brief
