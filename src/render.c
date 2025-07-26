@@ -9,11 +9,10 @@
 #include <SDL3/SDL.h>
 #include <libavutil/frame.h>
 
-#include <common.h>
 #include <frame-queue.h>
 #include <init.h>
 
-bool render_frame(const app_state *state) { //TODO prolly reuse texture? YES
+bool render_frame(const app_state *state) {
 
     /* waits for mutex */
     SDL_LockMutex(state->queue->mutex);
@@ -28,30 +27,18 @@ bool render_frame(const app_state *state) { //TODO prolly reuse texture? YES
     SDL_UnlockMutex(state->queue->mutex);
 
     if (!current_frame) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error receiving frame");
-        av_frame_free(&current_frame);
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error dequeueing frame");
         return false;
     }
 
-    //TODO understand all this
-    SDL_Texture *texture = SDL_CreateTexture(state->renderer,
-    SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
-    SDL_TEXTUREACCESS_STREAMING,
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT);
-
-    SDL_UpdateYUVTexture(texture,
-        NULL,               // entire texture
+    SDL_UpdateYUVTexture(state->base_texture, NULL,
         current_frame->data[0], current_frame->linesize[0],   // Y plane
         current_frame->data[1], current_frame->linesize[1],   // U plane
         current_frame->data[2], current_frame->linesize[2]);  // V plane
 
-
     SDL_RenderClear(state->renderer);
-    SDL_RenderTexture(state->renderer, texture, NULL, NULL);  // whole texture to window
+    SDL_RenderTexture(state->renderer, state->base_texture, NULL, NULL);  // whole texture to window
     SDL_RenderPresent(state->renderer);
-
-    SDL_DestroyTexture(texture);
 
     SDL_Delay(1); //TODO temporary debug, lets gpu finish rendering the texture befure freeing AVFrame
     av_frame_free(&current_frame);

@@ -22,6 +22,7 @@
 typedef struct app_state {
     SDL_Window      *window;                /**< Main Window for the program */
     SDL_Renderer    *renderer;              /**< Main Renderer for the program */
+    SDL_Texture     *base_texture;          /**< Reused texture for main video playback */
 
     SDL_Thread      *decoder_thread;        /**< Pointer to the thread that handles decoding */
     volatile bool   *stop_decoder_thread;   /**< The exit flag for the decoding thread */

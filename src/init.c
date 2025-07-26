@@ -40,6 +40,12 @@ app_state *initialize() {
         return NULL;
     }
 
+    state->base_texture = SDL_CreateTexture(state->renderer,
+    SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
+    SDL_TEXTUREACCESS_STREAMING,
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT);
+
     // Creates decoder thread exit flag and sets it to false
     state->stop_decoder_thread = calloc(1, sizeof(bool));
     if (!state->stop_decoder_thread) {
