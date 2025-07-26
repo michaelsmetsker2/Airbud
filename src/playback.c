@@ -41,9 +41,12 @@ struct media_context {
  * @param ctx struct to destroy
  */
 static void destroy_media_context(struct media_context *ctx) {
+
     av_frame_free(&ctx->video_frame);
     av_frame_free(&ctx->audio_frame);
     av_packet_free(&ctx->packet);
+    avcodec_flush_buffers(ctx->video_codec_ctx);
+    avcodec_flush_buffers(ctx->audio_codec_ctx);
     avcodec_free_context(&ctx->video_codec_ctx);
     avcodec_free_context(&ctx->audio_codec_ctx);
     avformat_close_input(&ctx->format_context);
@@ -116,6 +119,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open codec\n");
         return false;
     }
+
     if (avcodec_open2(media_ctx->audio_codec_ctx, audio_codec, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open audio codec\n");
         return false;
@@ -148,8 +152,15 @@ int play_file(void *data) {
     //while there is unparsed data left in the file
     while (!*args->exit_flag && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
-        //if stream index is audio, run that shit
-
+        if (avcodec_send_packet(media_ctx.audio_codec_ctx, media_ctx.packet) == 0) {
+            int ret;
+            while ((ret = avcodec_receive_frame(media_ctx.audio_codec_ctx, media_ctx.audio_frame)) == 0) {
+                av_frame_unref(media_ctx.audio_frame);  // discard audio frame
+            }
+            if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF && ret < 0) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error decoding audio frame: %d", ret);
+            }
+        }
 
         //does packet belong to the video stream TODO make sure this check is needed
         if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
@@ -157,6 +168,7 @@ int play_file(void *data) {
             // TODO make this return a value so it can error out, can change if dropping frames tends to happen
             decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->queue, args->exit_flag);
         }
+
         av_packet_unref(media_ctx.packet);
     }
 

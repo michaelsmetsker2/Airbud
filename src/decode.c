@@ -30,39 +30,25 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
     //a full frame is ready
     while (!*exit_flag && avcodec_receive_frame(dec_ctx, frame) == 0) {
 
-        //clone the frame
-        AVFrame *frame_copy = av_frame_clone(frame);
-        if (!frame_copy) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame\n");
-            *exit_flag = true;
-            break;
-        }
-
         SDL_LockMutex(queue->mutex); //waits until mutex is unlocked
 
-        if (queue->size != VIDEO_BUFFER_CAP) {
-            //queue is not at capacity
-
-            if (!enqueue_frame(queue, frame_copy)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue frame\n");
-                av_frame_free(&frame_copy);
-                *exit_flag = true;
-                SDL_UnlockMutex(queue->mutex);
+        //queue is at capacity
+        if (queue->size == VIDEO_BUFFER_CAP) {
+            //wait for free space
+            if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for queue to empty timed out\n");
+                //*exit_flag = true; //TODO if i dont wanna drop frames, uncomment
                 break;
             }
         }
-        else {
-            //queue is at capacity
-            if (SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
-                if (!enqueue_frame(queue, frame_copy)) {
-                    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't enqueue timed out\n");
-                    av_frame_free(&frame_copy);
-                    *exit_flag = true;
-                    SDL_UnlockMutex(queue->mutex);
-                    break;
-                }
-            }
+
+        if (!enqueue_frame(queue, frame)) {
+            *exit_flag = true;
+            SDL_UnlockMutex(queue->mutex);
+            break;
         }
+
+        av_frame_unref(frame);
         SDL_UnlockMutex(queue->mutex);
     }
 }

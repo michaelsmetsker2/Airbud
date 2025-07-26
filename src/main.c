@@ -13,16 +13,6 @@
 #include <render.h>
 #include "../include/init.h"
 
-
-#include <windows.h>
-#include <psapi.h>
-
-void print_memory_usage() {
-    PROCESS_MEMORY_COUNTERS memInfo;
-    GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
-    printf("Memory used: %zu KB\n", memInfo.WorkingSetSize / 1024);
-}
-
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add cli easter egg or something?
 
@@ -44,7 +34,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     //TODO menu layer/buttons
 
-    print_memory_usage(); //TODO debug
     return SDL_APP_CONTINUE; /* carry on with the program! */
 }
 

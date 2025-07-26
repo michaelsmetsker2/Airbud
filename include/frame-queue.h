@@ -43,16 +43,15 @@ typedef struct frame_queue {
 frame_queue *create_frame_queue(const int capacity);
 
 /**
- * @brief adds a frame to end of the queue
+ * @brief clones a frame and adds it to end of the queue
  *
- * ON FAILURE THIS DOES NOT FREE THE FRAME
  * does not internally handle mutex
  *
  * @param queue queue to be added to
- * @param frame AVFrame to be added to the queue
+ * @param frame AVFrame to clone and add to the queue
  * @return true on success false on failure
  */
-bool enqueue_frame(frame_queue *queue, AVFrame *frame);
+bool enqueue_frame(frame_queue *queue, const AVFrame *frame);
 
 /**
  * @brief pops the first frame in the given queue

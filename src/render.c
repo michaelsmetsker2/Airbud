@@ -40,7 +40,11 @@ bool render_frame(const app_state *state) {
     SDL_RenderTexture(state->renderer, state->base_texture, NULL, NULL);  // whole texture to window
     SDL_RenderPresent(state->renderer);
 
-    SDL_Delay(1); //TODO temporary debug, lets gpu finish rendering the texture befure freeing AVFrame
+    SDL_Delay(16); //TODO temporary debug, lets gpu finish rendering the texture befure freeing AVFrame
+    SDL_FlushRenderer(state->renderer);
+    av_frame_unref(current_frame);
+
+
     av_frame_free(&current_frame);
 
     return true;
