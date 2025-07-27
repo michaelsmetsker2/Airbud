@@ -15,6 +15,8 @@ add_executable(airbud src/main.c
         include/decode.h
         src/render.c
         include/render.h
+        src/resample.c
+        include/resample.h
 )
 
 target_include_directories(airbud PRIVATE
@@ -29,7 +31,8 @@ target_link_libraries(airbud PRIVATE
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavcodec.dll.a"
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavformat.dll.a"
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavutil.dll.a"
-        "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libswscale.dll.a"
+        #"${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libswscale.dll.a" so far unused
+        "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libswresample.dll.a"
 )
 
 add_custom_command(TARGET airbud POST_BUILD

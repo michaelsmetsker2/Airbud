@@ -1,7 +1,7 @@
 /**
  * @file frame-queue.h
  *
- * Contains a memory safe queue of av frames //todo genericize for audio as well
+ * Contains a memory safe queue of av frames
 * that will be accessible to multiple threads simultaneously
  *
  * @author Michael Metsker
@@ -40,7 +40,7 @@ typedef struct frame_queue {
  * @param capacity Size of the array, should be set with either VIDEO_BUFFER_CAP or AUDIO_BUFFER_CAP
  * @return *frame_queue - pointer to the created queue
  */
-frame_queue *create_frame_queue(const int capacity);
+frame_queue *create_frame_queue(int capacity);
 
 /**
  * @brief clones a frame and adds it to end of the queue
