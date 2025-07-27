@@ -43,7 +43,7 @@ typedef struct frame_queue {
 frame_queue *create_frame_queue(int capacity);
 
 /**
- * @brief clones a frame and adds it to end of the queue
+ * @brief takes a copy of a frame (made externally) and sends it to the queue
  *
  * does not internally handle mutex
  *
@@ -51,7 +51,7 @@ frame_queue *create_frame_queue(int capacity);
  * @param frame AVFrame to clone and add to the queue
  * @return true on success false on failure
  */
-bool enqueue_frame(frame_queue *queue, const AVFrame *frame);
+bool enqueue_frame(frame_queue *queue, AVFrame *frame);
 
 // TODO enque frame overload?
 

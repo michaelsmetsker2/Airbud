@@ -46,7 +46,7 @@ frame_queue *create_frame_queue(const int capacity) {
     return queue;
 }
 
-bool enqueue_frame(frame_queue *queue, const AVFrame *frame) {
+bool enqueue_frame(frame_queue *queue, AVFrame *frame) {
 
     //queue is full, should not even be called if this is the case
     if (queue->size == queue->capacity) {
@@ -54,14 +54,8 @@ bool enqueue_frame(frame_queue *queue, const AVFrame *frame) {
         return false;
     }
 
-    //clone the frame
-    AVFrame *frame_copy = av_frame_clone(frame);
-    if (!frame_copy) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame for queueing\n");
-        return false;
-    }
 
-    queue->frames[queue->rear] = frame_copy;
+    queue->frames[queue->rear] = frame;
     queue->rear = (queue->rear + 1) % queue->capacity;
     queue->size++;
 

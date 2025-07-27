@@ -30,7 +30,7 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
                   volatile bool *exit_flag);
 
 /**
- * Decodes an audio packet and queues and queues the resulting frames if any. // TODO OUTDATED
+ * Decodes an audio packet and queues and queues the resulting frames if any.
  *
  * @param dec_ctx deCodec to decode packet
  * @param packet Incoming packet data to be parsed

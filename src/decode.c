@@ -48,7 +48,14 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             }
         }
 
-        if (!resample(&frame, resampler)) {
+        AVFrame *frame_resampled = av_frame_alloc();
+        if (!frame_resampled) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate audio frame copy");
+            *exit_flag = true;
+            break;
+        }
+
+        if (!resample(frame, frame_resampled, resampler)) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to resample audio frame\n");
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
@@ -56,7 +63,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             break;
         }
 
-        if (!enqueue_frame(queue, frame)) {
+        if (!enqueue_frame(queue, frame_resampled)) {
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
             av_frame_unref(frame);
@@ -94,8 +101,15 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
             }
         }
 
-        //TODO create copy locally for genericization
-        if (!enqueue_frame(queue, frame)) {
+        //clone the frame
+        AVFrame *frame_copy = av_frame_clone(frame);
+        if (!frame_copy) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame for queueing\n");
+            *exit_flag = true;
+            break;
+        }
+
+        if (!enqueue_frame(queue, frame_copy)) {
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
             av_frame_unref(frame);
