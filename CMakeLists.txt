@@ -12,16 +12,16 @@ add_executable(airbud src/main.c
         src/init.c
         src/frame-queue.c
         src/decode.c
-        include/decode.h
+        src/decode.h
         src/render.c
-        include/render.h
+        src/render.h
         src/resample.c
-        include/resample.h
+        src/resample.h
 )
 
 target_include_directories(airbud PRIVATE
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/include"
-        "${CMAKE_SOURCE_DIR}/include"
+        "${CMAKE_SOURCE_DIR}/src"
 )
 
 # Don't use link_directories; specify full paths below instead!

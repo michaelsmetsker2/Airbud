@@ -27,8 +27,8 @@ typedef struct app_state {
     SDL_Thread      *decoder_thread;        /**< Pointer to the thread that handles decoding */
     volatile bool   *stop_decoder_thread;   /**< The exit flag for the decoding thread */
 
-    frame_queue     *queue;                 /**< render queue of buffered frames */
-    //TODO audio_queue
+    frame_queue     *video_queue;                 /**< render queue of buffered video frames */
+    frame_queue     *audio_queue;                 /**< render queue of buffered audio frames */
 
     /* TODO game_state??? potentially idk */
 } app_state;

@@ -132,12 +132,9 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
 
     // Initializes resampler
     if (swr_alloc_set_opts2(&media_ctx->resample_context,
-        &(AVChannelLayout){
-            .order = AV_CHANNEL_ORDER_NATIVE,
-            .nb_channels = 2                 // Output: stereo
-        },
+        &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
         AV_SAMPLE_FMT_S16,
-        4800,
+        48000,
 
         &media_ctx->audio_codec_ctx->ch_layout,
         media_ctx->audio_codec_ctx->sample_fmt,
@@ -146,6 +143,13 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
         ) < 0)
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't initizalize resampler\n");
+        return false;
+    }
+
+    // Initialize resampler
+    if (swr_init(media_ctx->resample_context) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't initialize resampler (swr_init failed)\n");
+        swr_free(&media_ctx->resample_context);
         return false;
     }
 
@@ -177,16 +181,15 @@ int play_file(void *data) {
     //while there is unparsed data left in the file
     while (!*args->exit_flag && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
-        //does packet belong to the video stream TODO make sure this check is needed
         if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
 
+            // TODO could make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
-                args->queue, args->exit_flag);
+                args->audio_queue, args->exit_flag);
 
         } else if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
-            // TODO make this return a value so it can error out, can change if dropping frames tends to happen
-            decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->queue, args->exit_flag);
+            decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue, args->exit_flag);
         }
 
         av_packet_unref(media_ctx.packet);

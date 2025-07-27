@@ -1,5 +1,5 @@
 /**
- * @file decode.h
+ * @file render.h
  *
  * Functions relating to displaying video and playing audio
  *

@@ -33,10 +33,15 @@ app_state *initialize() {
         return NULL;
     }
 
-    // Creates a frame_queue for the app
-    state->queue = create_frame_queue(VIDEO_BUFFER_CAP);
-    if (!state->queue) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate frame_queue\n");
+    // Creates a video and audio frame_queue for the app
+    state->video_queue = create_frame_queue(VIDEO_BUFFER_CAP);
+    if (!state->video_queue) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate video frame_queue\n");
+        return NULL;
+    }
+    state->audio_queue = create_frame_queue(AUDIO_BUFFER_CAP);
+    if (!state->video_queue) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate audio frame_queue\n");
         return NULL;
     }
 
@@ -60,7 +65,8 @@ app_state *initialize() {
         return NULL;
     }
     args->exit_flag = state->stop_decoder_thread;
-    args->queue = state->queue;
+    args->video_queue = state->video_queue;
+    args->audio_queue = state->audio_queue;
     args->filename = TEST_FILE_URL;
 
     state->decoder_thread = SDL_CreateThread(play_file, "decoder", args);

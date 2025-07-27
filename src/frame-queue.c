@@ -50,13 +50,14 @@ bool enqueue_frame(frame_queue *queue, const AVFrame *frame) {
 
     //queue is full, should not even be called if this is the case
     if (queue->size == queue->capacity) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "can't queue frame, queue is full\n");
         return false;
     }
 
     //clone the frame
     AVFrame *frame_copy = av_frame_clone(frame);
     if (!frame_copy) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame\n");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame for queueing\n");
         return false;
     }
 
@@ -72,6 +73,7 @@ AVFrame *dequeue_frame(frame_queue *queue) {
 
     // if queue is empty, shouldn't even be called if this is the case
     if (queue->size == 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "can't dequeue frame, queue is empty\n");
         return NULL;
     }
 

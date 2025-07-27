@@ -15,16 +15,16 @@
 bool render_frame(const app_state *state) {
 
     /* waits for mutex */
-    SDL_LockMutex(state->queue->mutex);
+    SDL_LockMutex(state->video_queue->mutex);
 
     /* queue empty */
-    if (state->queue->size == 0) {
-        SDL_UnlockMutex(state->queue->mutex);
+    if (state->video_queue->size == 0) {
+        SDL_UnlockMutex(state->video_queue->mutex);
         return false;
     }
 
-    AVFrame *current_frame = dequeue_frame(state->queue);
-    SDL_UnlockMutex(state->queue->mutex);
+    AVFrame *current_frame = dequeue_frame(state->video_queue);
+    SDL_UnlockMutex(state->video_queue->mutex);
 
     if (!current_frame) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error dequeueing frame");

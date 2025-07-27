@@ -53,6 +53,8 @@ frame_queue *create_frame_queue(int capacity);
  */
 bool enqueue_frame(frame_queue *queue, const AVFrame *frame);
 
+// TODO enque frame overload?
+
 /**
  * @brief pops the first frame in the given queue
  *

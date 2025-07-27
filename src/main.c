@@ -11,7 +11,7 @@
 #include <SDL3/SDL_main.h>
 
 #include <render.h>
-#include "../include/init.h"
+#include <init.h>
 
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add cli easter egg or something?
