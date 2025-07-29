@@ -32,13 +32,13 @@ struct media_context {
 
     AVCodecContext  *video_codec_ctx;        /**< decodec for decoding the video stream */
     int             video_stream_index;      /**< index of the video stream to be decoded */
-    AVFrame         *video_frame;            /**< reused videoframe, its data is copied to a queue */
+    AVFrame         *video_frame;            /**< reused video frame, its data is copied to a queue */
 
     // Audio
     SwrContext      *resample_context;      /**< software resampler to make audio usable in SDL3 */
     AVCodecContext  *audio_codec_ctx;       /**< decodec for decoding the audio stream */
     int             audio_stream_index;     /**< index of the audio stream to be decoded */
-    AVFrame         *audio_frame;       //todo
+    AVFrame         *audio_frame;           /**< reused audio frame, its data is copied to a queue */
 
     AVPacket        *packet;                /**< packet of decoded data of any stream */
 };

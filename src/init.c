@@ -89,3 +89,7 @@ app_state *initialize() {
 
     return state;
 }
+
+bool start_threads(app_state *state) {
+
+}
