@@ -26,11 +26,21 @@ app_state *initialize() {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate codec context\n");
         return NULL;
     }
-
     // Creates window and renderer and adds them to state
     if (!SDL_CreateWindowAndRenderer("airbud/renderer", SCREEN_WIDTH, SCREEN_HEIGHT, 0, &state->window, &state->renderer)) {
         SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
         return NULL;
+    }
+
+    const SDL_AudioSpec desired = {
+        .freq = 48000,
+        .format = SDL_AUDIO_S16LE,
+        .channels = 2, //stereo
+    };
+    state->audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired);
+    if (!state->audio_device) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device: %s", SDL_GetError());
+        return false;
     }
 
     // Creates a video and audio frame_queue for the app
@@ -58,7 +68,8 @@ app_state *initialize() {
         return NULL;
     }
 
-    //create playback args for decoder thread and populate it //TODO could move to new function?
+    // TODO do i have a way to clean up args? also File name needs updatin
+    //create playback args for decoder thread and populate it //TODO make an args constructor function
     struct playback_args *args = malloc(sizeof(struct playback_args));
     if (!args) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate args for decoder thread\n");
@@ -69,6 +80,7 @@ app_state *initialize() {
     args->audio_queue = state->audio_queue;
     args->filename = TEST_FILE_URL;
 
+    //This starts the decoder thread off on the first file
     state->decoder_thread = SDL_CreateThread(play_file, "decoder", args);
     if (!state->decoder_thread) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");

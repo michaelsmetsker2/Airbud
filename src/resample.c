@@ -33,10 +33,5 @@ bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *res
         return false;
     }
 
-    /*
-    AVFrame *old_frame = *input_frame;
-    *input_frame = output_frame;
-    av_frame_free(&old_frame);  // unref + free internally
-*/
     return true;
 }

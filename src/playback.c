@@ -3,7 +3,6 @@
  *
  * Handles decoding and adding frames to the queue.
  *
- *
  * @author Michael Metsker
  * @version 1.0
  */

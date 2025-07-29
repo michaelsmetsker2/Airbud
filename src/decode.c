@@ -29,7 +29,6 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
     //decodes packet
     if (avcodec_send_packet(dec_ctx, packet) != 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't decode video packet");
-        av_frame_unref(frame);
         *exit_flag = true;
     }
 
@@ -42,7 +41,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             //wait for free space
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for queue to empty timed out\n");
-                av_frame_unref(frame);
+                //av_frame_unref(frame);
                 //*exit_flag = true;
                 break;
             }
@@ -59,14 +58,12 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to resample audio frame\n");
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
-            av_frame_unref(frame);
             break;
         }
 
         if (!enqueue_frame(queue, frame_resampled)) {
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
-            av_frame_unref(frame);
             break;
         }
         av_frame_unref(frame);
@@ -81,7 +78,6 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
     //decodes packet
     if (avcodec_send_packet(dec_ctx, packet) != 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't decode video packet");
-        av_frame_unref(frame);
         *exit_flag = true;
     }
 
@@ -95,7 +91,6 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
             //wait for free space
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for queue to empty timed out\n");
-                av_frame_unref(frame);
                 *exit_flag = true;
                 break;
             }
@@ -112,7 +107,6 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
         if (!enqueue_frame(queue, frame_copy)) {
             *exit_flag = true;
             SDL_UnlockMutex(queue->mutex);
-            av_frame_unref(frame);
             break;
         }
 

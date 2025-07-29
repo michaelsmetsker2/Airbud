@@ -13,21 +13,20 @@
 #include <frame-queue.h>
 #include <stdbool.h>
 
-
 /**
  * @struct playback_args
- * //TODO
+ * Handles decoding and adding frames to the queue.
  * @brief Parameters for the decoder thread.
  */
 struct playback_args {
-    volatile bool *exit_flag; /**< default false, whether the thread should stop executing */
-    const char *filename;     /**< file to be played back */
+    volatile bool *exit_flag;       /**< default false, whether the thread should stop executing */
+    const char *filename;           /**< file to be played back */
     frame_queue *video_queue;       /**< video queue to add frames to */
     frame_queue *audio_queue;       /**< audio queue to add frames to */
 };
 
 /**
- * @brief manages decoding frames and audio from a file, then adds decoded data to a frame queue
+ * @brief a thread that manages decoding frames and audio from a file, then adds decoded data to a frame queue
  *
  * @param data pointer to playback_args struct
  * @return 0 if clean shutdown

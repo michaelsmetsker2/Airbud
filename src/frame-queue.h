@@ -2,7 +2,7 @@
  * @file frame-queue.h
  *
  * Contains a memory safe queue of av frames
-* that will be accessible to multiple threads simultaneously
+ * that will be accessible to multiple threads simultaneously
  *
  * @author Michael Metsker
  * @version 1.0
@@ -21,7 +21,7 @@ static const int AUDIO_BUFFER_CAP = 40;
 
 /**
  * @struct frame_queue
- * @brief memory safe queue of 16 frames
+ * @brief memory safe queue of AVFrames
  */
 typedef struct frame_queue {
     AVFrame **frames;         /**< Dynamic circular buffer of frame pointers */
