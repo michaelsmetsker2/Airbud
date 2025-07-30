@@ -20,20 +20,20 @@
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
 typedef struct app_state {
-    SDL_Window         *window;               /**< Main Window for the program */
-    SDL_Renderer       *renderer;             /**< Main Renderer for the program */
+    SDL_Window         *window;               /**< main Window for the program */
+    SDL_Renderer       *renderer;             /**< main Renderer for the program */
     SDL_Texture        *base_texture;         /**< Reused texture for main video playback */
 
     frame_queue        *video_queue;          /**< render queue of buffered video frames */
     frame_queue        *audio_queue;          /**< render queue of buffered audio frames */
 
-    SDL_Thread         *decoder_thread;       /**< Pointer to the thread that handles decoding */
+    SDL_Thread         *decoder_thread;       /**< pointer to the thread that handles decoding */
     volatile bool      *stop_decoder_thread;  /**< The exit flag for the decoding thread */
 
     SDL_Thread         *audio_thread;         /**< handles audio playback */
-    volatile bool      *stop_audio_thread;
+    volatile bool      *stop_audio_thread;    /**< exit flag for audio thread */
 
-    SDL_AudioDeviceID  audio_device;          /**< ID of the audio device that will play back sound */
+    SDL_AudioDeviceID  audio_device;          /**< audio device for sound playback */
 
     /* TODO game_state??? potentially idk */
 } app_state;

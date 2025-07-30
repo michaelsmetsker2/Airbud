@@ -42,7 +42,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for audio queue to empty timed out\n");
                 //av_frame_unref(frame);
-                //*exit_flag = true;
+                //*exit_flag = true; //FIXME
                 break;
             }
         }

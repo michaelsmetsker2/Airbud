@@ -7,10 +7,17 @@
  * @version 1.0
  */
 
+#include <audio.h>
 #include <SDL3/SDL.h>
 #include <common.h>
 #include <init.h>
 #include <read_file.h>
+#include <audio.h>
+
+//audio packet format for
+static const int FREQUENCY = 48000;
+static const SDL_AudioFormat FORMAT = SDL_AUDIO_S16LE;
+static const int CHANNELS = 2; //stereo
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
@@ -28,24 +35,24 @@ app_state *initialize() {
     }
     // Creates window and renderer and adds them to state
     if (!SDL_CreateWindowAndRenderer("airbud/renderer", SCREEN_WIDTH, SCREEN_HEIGHT, 0, &appstate->window, &appstate->renderer)) {
-        SDL_Log("Couldn't create window/renderer: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create window/renderer\n");
         return NULL;
     }
 
+    //create audio device
     const SDL_AudioSpec desired = {
-        .freq = 48000,
-        .format = SDL_AUDIO_S16LE,
-        .channels = 2, //stereo
+        .freq = FREQUENCY,
+        .format = FORMAT,
+        .channels = CHANNELS, //stereo
     };
 
-    //FIXME
     appstate->audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired);
     if (!appstate->audio_device) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to open audio device: %s", SDL_GetError());
-        return false;
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio device\n");
+        return NULL;
     }
 
-    // Creates a video and audio frame_queue for the app
+    // Creates reused video and audio frame_queue for the app
     appstate->video_queue = create_frame_queue(VIDEO_BUFFER_CAP);
     if (!appstate->video_queue) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate video frame_queue\n");
@@ -57,6 +64,7 @@ app_state *initialize() {
         return NULL;
     }
 
+    //creates reused texture for rendering
     appstate->base_texture = SDL_CreateTexture(appstate->renderer,
     SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
     SDL_TEXTUREACCESS_STREAMING,
@@ -70,22 +78,37 @@ bool start_threads(app_state *appstate) {
 
     // Creates decoder thread exit flag and sets it to false
     appstate->stop_decoder_thread = calloc(1, sizeof(bool));
-    if (!appstate->stop_decoder_thread) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder exit flag\n");
+    appstate->stop_audio_thread = calloc(1, sizeof(bool));
+    if (!appstate->stop_decoder_thread|| !appstate->stop_audio_thread) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate thread exit flags\n");
         return false;
     }
-
-    //TODO filename needs updatin'
-    struct decoder_thread_args *args = create_decoder_args(appstate, TEST_FILE_URL);
-    if (!args) {
+    // Initialize decoder thread args
+    struct decoder_thread_args *decoder_args = create_decoder_args(appstate, TEST_FILE_URL); //FIXME filename needs updatin'
+    if (!decoder_args) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to create playback args\n");
         return false;
     }
-
     //This starts the decoder thread off on the first file
-    appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", args);
+    appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", decoder_args);
     if (!appstate->decoder_thread) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");
+        return false;
+    }
+
+    struct audio_thread_args *audio_args = malloc(sizeof(struct audio_thread_args));
+    if (!audio_args) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio thread args\n");
+        return false;
+    }
+    //initializes audio_args members
+    audio_args->audio_device = appstate->audio_device;
+    audio_args->exit_flag = appstate->stop_audio_thread;
+    audio_args->queue = appstate->audio_queue;
+    //start audio thread
+    appstate->audio_thread = SDL_CreateThread(audio_playback, "audio", audio_args);
+    if (!appstate->audio_thread) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio thread\n");
         return false;
     }
 

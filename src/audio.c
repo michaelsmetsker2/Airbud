@@ -14,8 +14,9 @@
 
 #include <audio.h>
 
-bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *resampler) {
+static const int TIMEOUT_DELAY_MS = 25;
 
+bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *resampler) {
 
     output_frame->format = AV_SAMPLE_FMT_S16;
     av_channel_layout_default(&output_frame->ch_layout, 2);
@@ -36,35 +37,60 @@ bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *res
 
     return true;
 }
-/*
-struct decoder_thread_args *create_decoder__args(const struct app_state *appstate, const char *filename) {
 
-    struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
-    if (!args) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate args for decoder thread\n");
-        return NULL;
+/*
+ * @brief main loop for audio playback, a function allows for early exit.
+ * @param
+ * @return true on success, false on failure
+ */
+static bool playback_loop(const struct audio_thread_args *args) {
+    //wait on mutex
+    SDL_LockMutex(args->queue->mutex);
+
+    // queue is empty
+    if (args->queue->size == 0) {
+
+        //wait
+        if (!SDL_WaitConditionTimeout(args->queue->not_empty, args->queue->mutex, TIMEOUT_DELAY_MS)) {
+            // It is potentially not abnormal for this to time out when ther is no audio
+            SDL_UnlockMutex(args->queue->mutex);
+            return true; // returns true as erroring out is not needed
+        }
     }
 
-    args->exit_flag = appstate->stop_decoder_thread;
-    args->video_queue = appstate->video_queue;
-    args->audio_queue = appstate->audio_queue;
-    args->filename = filename;
 
-    return args;
+    AVFrame *frame = dequeue_frame(args->queue);
+    if (!frame) {
+        SDL_UnlockMutex(args->queue->mutex);
+        *args->exit_flag = false;
+        return false;
+    }
+
+    SDL_Log("dequeue_frame");
+    SDL_UnlockMutex(args->queue->mutex);
+
+    if (!frame || !frame->data[0]) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "audio playback: invalid frame");
+        return false;
+    }
+
+
+
+    av_frame_free(&frame);
+    return true;
 }
 
-int play_file(void *data) {
-    const struct decoder_thread_args *args = (struct decoder_thread_args *) data;
-    *args->exit_flag = false; //TODO setting it here, could change, remember
+int audio_playback(void *data) {
+    const struct audio_thread_args *args = (struct audio_thread_args *) data;
 
-    // Sets all members to NULL
-    struct media_context media_ctx = {0};
+    SDL_ResumeAudioDevice(args->audio_device);
 
-    if (!setup_file_context(&media_ctx, args->filename)) {
-        destroy_media_context(&media_ctx);
-        return -1;
+    while (!*args->exit_flag) {
+
+        playback_loop(args);
+        if (!playback_loop(args)) {
+            *args->exit_flag = true;
+        }
     }
-
     return 0;
 }
- */

@@ -33,6 +33,7 @@ typedef struct frame_queue {
     SDL_Mutex *mutex;         /**< Guards access from multiple threads to prevent data corruption */
     SDL_Condition *not_empty; /**< Signaled when frames are added */
     SDL_Condition *not_full;  /**< Signaled when frames are removed */
+    // TODO make sure all empty and full conditions are used
 } frame_queue;
 
 /**

@@ -17,6 +17,8 @@ bool render_frame(const app_state *state) {
     /* waits for mutex */
     SDL_LockMutex(state->video_queue->mutex);
 
+    /* FIXME doing it like this every frame instead of when the queue is updated may be the problem with timing
+       FIXME and if it isnt then the onEmpty may be gotten rid of */
     /* queue empty */
     if (state->video_queue->size == 0) {
         SDL_UnlockMutex(state->video_queue->mutex);
