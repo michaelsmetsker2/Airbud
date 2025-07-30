@@ -8,15 +8,15 @@ set(CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/include/SDL3-3.2.18/cmake")
 find_package(SDL3 REQUIRED CONFIG)
 
 add_executable(airbud src/main.c
-        src/playback.c
+        src/read_file.c
         src/init.c
-        src/frame-queue.c
+        src/frame_queue.c
         src/decode.c
         src/decode.h
         src/render.c
         src/render.h
-        src/resample.c
-        src/resample.h
+        src/audio.c
+        src/audio.h
 )
 
 target_include_directories(airbud PRIVATE

@@ -1,13 +1,14 @@
 /**
- * @file resample.h
- * resamples audio frames so they can be used with SDL3
+ * @file audio.h
+ *
+ * Handles the audio thread, playback and resampling
  *
  * @author Michael Metsker
  * @version 1.0
  */
 
-#ifndef RESAMPLE_H
-#define RESAMPLE_H
+#ifndef AUDIO_H
+#define AUDIO_H
 
 #include <libavutil/frame.h>
 #include <libswresample/swresample.h>
@@ -24,4 +25,4 @@
  */
 bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *resampler);
 
-#endif //RESAMPLE_H
+#endif //AUDIO_H

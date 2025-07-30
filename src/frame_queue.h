@@ -1,5 +1,5 @@
 /**
- * @file frame-queue.h
+ * @file frame_queue.h
  *
  * Contains a memory safe queue of av frames
  * that will be accessible to multiple threads simultaneously

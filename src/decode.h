@@ -14,7 +14,7 @@
 #include <libavutil/frame.h>
 #include <libswresample/swresample.h>
 
-#include <frame-queue.h>
+#include <frame_queue.h>
 #include <stdbool.h>
 
 /**

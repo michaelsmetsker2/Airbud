@@ -13,7 +13,7 @@
 
 #include <stdbool.h>
 
-#include <frame-queue.h>
+#include <frame_queue.h>
 
 
 frame_queue *create_frame_queue(const int capacity) {

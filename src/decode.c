@@ -15,9 +15,9 @@
 
 #include <stdbool.h>
 #include <decode.h>
-#include <resample.h>
+#include <audio.h>
 
-#include <frame-queue.h>
+#include <frame_queue.h>
 
 //TODO the majority of this file is duplicate code, room to improve
 
@@ -40,7 +40,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
         if (queue->size == AUDIO_BUFFER_CAP) {
             //wait for free space
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for queue to empty timed out\n");
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for audio queue to empty timed out\n");
                 //av_frame_unref(frame);
                 //*exit_flag = true;
                 break;
@@ -90,7 +90,7 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
         if (queue->size == VIDEO_BUFFER_CAP) {
             //wait for free space
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for queue to empty timed out\n");
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for video queue to empty timed out\n");
                 *exit_flag = true;
                 break;
             }

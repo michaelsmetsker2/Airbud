@@ -9,7 +9,7 @@
 #include <SDL3/SDL.h>
 #include <libavutil/frame.h>
 
-#include <frame-queue.h>
+#include <frame_queue.h>
 #include <init.h>
 
 bool render_frame(const app_state *state) {

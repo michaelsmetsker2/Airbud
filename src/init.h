@@ -11,7 +11,7 @@
 #ifndef INIT_H
 #define INIT_H
 
-#include <frame-queue.h>
+#include <frame_queue.h>
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 
@@ -23,13 +23,17 @@ typedef struct app_state {
     SDL_Window         *window;               /**< Main Window for the program */
     SDL_Renderer       *renderer;             /**< Main Renderer for the program */
     SDL_Texture        *base_texture;         /**< Reused texture for main video playback */
-    SDL_AudioDeviceID  audio_device;          /**< ID of the audio device that will play back sound */
+
+    frame_queue        *video_queue;          /**< render queue of buffered video frames */
+    frame_queue        *audio_queue;          /**< render queue of buffered audio frames */
 
     SDL_Thread         *decoder_thread;       /**< Pointer to the thread that handles decoding */
     volatile bool      *stop_decoder_thread;  /**< The exit flag for the decoding thread */
 
-    frame_queue        *video_queue;          /**< render queue of buffered video frames */
-    frame_queue        *audio_queue;          /**< render queue of buffered audio frames */
+    SDL_Thread         *audio_thread;         /**< handles audio playback */
+    volatile bool      *stop_audio_thread;
+
+    SDL_AudioDeviceID  audio_device;          /**< ID of the audio device that will play back sound */
 
     /* TODO game_state??? potentially idk */
 } app_state;
@@ -44,9 +48,9 @@ app_state *initialize();
 /**
  * @brief starts audio and decoding threads with the correct parameters
  *
- * @param state app state containing various app wide variables
+ * @param appstate app state containing various app wide variables
  * @return true on success, false otherwise
  */
-bool start_threads(app_state *state);
+bool start_threads(app_state *appstate);
 
 #endif //INIT_H

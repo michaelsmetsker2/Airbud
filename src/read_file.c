@@ -1,7 +1,8 @@
 /**
- * @file playback.c
+ * @file read_file.c
  *
- * Handles decoding and adding frames to the queue.
+ * Main file for the decoder thread.
+ * Handles opening files, decoding and adding frames to the queue.
  *
  * @author Michael Metsker
  * @version 1.0
@@ -12,7 +13,7 @@
 
 #include <SDL3/SDL.h>
 
-#include <playback.h>
+#include <read_file.h>
 #include <decode.h>
 
 #include <libswresample/swresample.h>
@@ -164,9 +165,24 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     return true;
 }
 
+struct decoder_thread_args *create_decoder_args(const struct app_state *appstate, const char *filename) {
+
+    struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
+    if (!args) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate args for decoder thread\n");
+        return NULL;
+    }
+
+    args->exit_flag = appstate->stop_decoder_thread;
+    args->video_queue = appstate->video_queue;
+    args->audio_queue = appstate->audio_queue;
+    args->filename = filename;
+
+    return args;
+}
+
 int play_file(void *data) {
-    const struct playback_args *args = (struct playback_args *) data;
-    *args->exit_flag = false; //TODO setting it here, could change, remember
+    const struct decoder_thread_args *args = (struct decoder_thread_args *) data;
 
     // Sets all members to NULL
     struct media_context media_ctx = {0};
@@ -182,7 +198,7 @@ int play_file(void *data) {
 
         if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
 
-            // TODO could make these return a value on failure
+            // TODO prolly should make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
                 args->audio_queue, args->exit_flag);
 
@@ -195,5 +211,6 @@ int play_file(void *data) {
     }
 
     destroy_media_context(&media_ctx);
+    //TODO is decoder args getting cleaned up?
     return 0;
 }
