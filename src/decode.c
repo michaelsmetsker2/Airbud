@@ -41,8 +41,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             //wait for free space
             if (!SDL_WaitConditionTimeout(queue->not_full, queue->mutex, TIMEOUT_DELAY_MS)) {
                 SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "waiting for audio queue to empty timed out\n");
-                //av_frame_unref(frame);
-                //*exit_flag = true; //FIXME
+                av_frame_unref(frame); //TODO determine if i need this line
                 break;
             }
         }

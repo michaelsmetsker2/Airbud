@@ -44,38 +44,35 @@ bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *res
  * @return true on success, false on failure
  */
 static bool playback_loop(const struct audio_thread_args *args) {
+
     //wait on mutex
     SDL_LockMutex(args->queue->mutex);
-
     // queue is empty
     if (args->queue->size == 0) {
-
-        //wait
+        //wait untill not empty
         if (!SDL_WaitConditionTimeout(args->queue->not_empty, args->queue->mutex, TIMEOUT_DELAY_MS)) {
-            // It is potentially not abnormal for this to time out when ther is no audio
+            // It is not abnormal for this to time out when ther is no audio
             SDL_UnlockMutex(args->queue->mutex);
-            return true; // returns true as erroring out is not needed
+            return true;
         }
     }
-
-
+    //dequeues frame
     AVFrame *frame = dequeue_frame(args->queue);
     if (!frame) {
         SDL_UnlockMutex(args->queue->mutex);
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't get dequeued audio frame");
         *args->exit_flag = false;
         return false;
     }
 
-    SDL_Log("dequeue_frame");
-    SDL_UnlockMutex(args->queue->mutex);
-
-    if (!frame || !frame->data[0]) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "audio playback: invalid frame");
+    if (!SDL_PutAudioStreamData(args->stream, frame->data[0], frame->nb_samples)) {
+        SDL_UnlockMutex(args->queue->mutex);
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't push frame data to audio stream");
+        *args->exit_flag = true;
         return false;
     }
 
-
-
+    SDL_UnlockMutex(args->queue->mutex);
     av_frame_free(&frame);
     return true;
 }
@@ -83,7 +80,7 @@ static bool playback_loop(const struct audio_thread_args *args) {
 int audio_playback(void *data) {
     const struct audio_thread_args *args = (struct audio_thread_args *) data;
 
-    SDL_ResumeAudioDevice(args->audio_device);
+    SDL_ResumeAudioStreamDevice(args->stream);
 
     while (!*args->exit_flag) {
 
@@ -92,5 +89,7 @@ int audio_playback(void *data) {
             *args->exit_flag = true;
         }
     }
+
+    //TODO flush pause and close stream
     return 0;
 }

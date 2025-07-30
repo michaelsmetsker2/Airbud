@@ -27,14 +27,14 @@ struct audio_thread_args {
     volatile bool *exit_flag;           /**< default false, whether the thread should stop executing */
 
     frame_queue *queue;                 /**< frame queue to pull frames from */
-    SDL_AudioDeviceID  audio_device;    /**< ID of the audio device that will play back sound */
+    SDL_AudioStream  *stream;           /**< audio stream for playback */
 };
 
 /**
  * @brief resamples vob audio to be playable by SDL3
  *
  * @param input_frame audio frame to be resampled
- * @param output_frame
+ * @param output_frame resampled frame
  * @param resampler software resample context to use
  * @return true on success false otherwise
  */

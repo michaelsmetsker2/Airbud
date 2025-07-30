@@ -33,7 +33,7 @@ typedef struct app_state {
     SDL_Thread         *audio_thread;         /**< handles audio playback */
     volatile bool      *stop_audio_thread;    /**< exit flag for audio thread */
 
-    SDL_AudioDeviceID  audio_device;          /**< audio device for sound playback */
+    SDL_AudioStream    *audio_stream;         /**< audio stream for sound playback */
 
     /* TODO game_state??? potentially idk */
 } app_state;

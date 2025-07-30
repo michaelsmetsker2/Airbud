@@ -39,16 +39,16 @@ app_state *initialize() {
         return NULL;
     }
 
-    //create audio device
+    //create audio stream
     const SDL_AudioSpec desired = {
         .freq = FREQUENCY,
         .format = FORMAT,
         .channels = CHANNELS, //stereo
     };
-
-    appstate->audio_device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired);
-    if (!appstate->audio_device) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio device\n");
+    //TODO potentialy use the sdl audio callback thing?
+    appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, NULL, NULL);
+    if (!appstate->audio_stream) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio stream\n");
         return NULL;
     }
 
@@ -102,7 +102,7 @@ bool start_threads(app_state *appstate) {
         return false;
     }
     //initializes audio_args members
-    audio_args->audio_device = appstate->audio_device;
+    audio_args->stream = appstate->audio_stream;
     audio_args->exit_flag = appstate->stop_audio_thread;
     audio_args->queue = appstate->audio_queue;
     //start audio thread
