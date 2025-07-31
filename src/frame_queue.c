@@ -54,7 +54,6 @@ bool enqueue_frame(frame_queue *queue, AVFrame *frame) {
         return false;
     }
 
-
     queue->frames[queue->rear] = frame;
     queue->rear = (queue->rear + 1) % queue->capacity;
     queue->size++;

@@ -15,9 +15,9 @@
 #include <libavutil/frame.h>
 
 /** the max amount of frames to buffer / hold in a queue */
-static const int VIDEO_BUFFER_CAP = 5;
+static const int VIDEO_BUFFER_CAP = 10;
 /** the max amount of audio frames to buffer **/
-static const int AUDIO_BUFFER_CAP = 40;
+static const int AUDIO_BUFFER_CAP = 30;
 
 /**
  * @struct frame_queue

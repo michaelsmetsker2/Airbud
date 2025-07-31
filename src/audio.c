@@ -18,8 +18,8 @@ static const int TIMEOUT_DELAY_MS = 25;
 
 bool resample(const AVFrame *input_frame, AVFrame *output_frame, SwrContext *resampler) {
 
-    output_frame->format = AV_SAMPLE_FMT_S16;
     av_channel_layout_default(&output_frame->ch_layout, 2);
+    output_frame->format = AV_SAMPLE_FMT_S16;
     output_frame->sample_rate = 48000;
     output_frame->nb_samples = input_frame->nb_samples;
 
@@ -65,7 +65,14 @@ static bool playback_loop(const struct audio_thread_args *args) {
         return false;
     }
 
-    if (!SDL_PutAudioStreamData(args->stream, frame->data[0], frame->nb_samples)) {
+    //TODO turn some of this into consts
+    const int data_size = av_samples_get_buffer_size(NULL,
+    frame->ch_layout.nb_channels,
+    frame->nb_samples,
+    frame->format,
+    1);
+
+    if (!SDL_PutAudioStreamData(args->stream, frame->data[0], data_size)) {
         SDL_UnlockMutex(args->queue->mutex);
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't push frame data to audio stream");
         *args->exit_flag = true;
