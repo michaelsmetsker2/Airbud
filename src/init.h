@@ -24,14 +24,15 @@ typedef struct app_state {
     SDL_Renderer       *renderer;             /**< main Renderer for the program */
     SDL_Texture        *base_texture;         /**< Reused texture for main video playback */
 
+    SDL_AtomicU32       audio_playback_time;  /**< amount of packets of audio played, used to sync video in ms*/
     frame_queue        *video_queue;          /**< render queue of buffered video frames */
     frame_queue        *audio_queue;          /**< render queue of buffered audio frames */
 
     SDL_Thread         *decoder_thread;       /**< pointer to the thread that handles decoding */
-    volatile bool      *stop_decoder_thread;  /**< The exit flag for the decoding thread */
+    SDL_AtomicInt      stop_decoder_thread;  /**< The exit flag for the decoding thread */
 
     SDL_Thread         *audio_thread;         /**< handles audio playback */
-    volatile bool      *stop_audio_thread;    /**< exit flag for audio thread */
+    SDL_AtomicInt       stop_audio_thread;    /**< exit flag for audio thread */
 
     SDL_AudioStream    *audio_stream;         /**< audio stream for sound playback */
 

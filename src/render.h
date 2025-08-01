@@ -19,7 +19,7 @@
  * @param state app_state state that contains window, renderer and queue for rendering
  * @return true on success false otherwise
  */
-bool render_frame(const app_state *state);
+bool render_frame(app_state *state);
 
 
 

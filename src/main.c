@@ -15,7 +15,7 @@
 #include <init.h>
 
 /* runs on startup */
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add cli easter egg or something?
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage or sumthin?
 
     *appstate = initialize();
     if (*appstate == NULL) {
@@ -38,15 +38,24 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
     //TODO menu layer/buttons
 
-    return SDL_APP_CONTINUE; /* carry on with the program! */
+    return SDL_APP_CONTINUE;
 }
 
 /* Runs when a new event (mouse input, keypresses, etc.) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS; /* end the program, reporting success to the OS. */
+        return SDL_APP_SUCCESS;
     }
-    return SDL_APP_CONTINUE; /* carry on with the program! */
+
+    if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (event->button.button) {
+            SDL_Log("clicked!");
+        }
+    }
+
+    //TODO press f to go fullscreen
+
+    return SDL_APP_CONTINUE;
 }
 
 /* Runs once at shutdown. */

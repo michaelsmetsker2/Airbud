@@ -1,8 +1,7 @@
 /**
- * @file frame-queue.c
+ * @file frame_queue.c
  *
  * helper functions for frame and frame_queue structs
- * TODO make checking variables like size helper functions so i can change it to all internal mutex
  *
  * @author Michael Metsker
  * @version 1.0

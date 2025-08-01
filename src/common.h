@@ -13,6 +13,6 @@
 static const int SCREEN_WIDTH = 720;
 static const int SCREEN_HEIGHT = 480;
 
-static const char TEST_FILE_URL[] = "Z:/projects/airbud/VTS_01_1.VOB"; //TODO replace with actual file list prolly a map
+static const char TEST_FILE_URL[] = "Z:/projects/airbud/VTS_03_0.VOB"; //TODO replace with actual file list prolly a map
 
 #endif //COMMON_H

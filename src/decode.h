@@ -17,6 +17,8 @@
 #include <frame_queue.h>
 #include <stdbool.h>
 
+//TODO honestly either make it one function or fucking pass in the whole args, cba at this point
+
 /**
  * Decodes a video packet and queues and queues the resulting frames if any.
  *
@@ -27,7 +29,7 @@
  * @param exit_flag Exit flag for early exit
  */
 void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, frame_queue *queue,
-                  volatile bool *exit_flag);
+                  SDL_AtomicInt *exit_flag);
 
 /**
  * Decodes an audio packet and queues and queues the resulting frames if any.
@@ -40,6 +42,6 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
  * @param exit_flag Exit flag for early exit
  */
 void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, SwrContext *resampler, frame_queue *queue,
-                  volatile bool *exit_flag);
+                  SDL_AtomicInt *exit_flag);
 
 #endif //DECODE_H

@@ -21,7 +21,6 @@
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
 
-
 /**
  * @struct media_context
  * @brief Holds all relevant file context for video and audio decoding, makes it easier to clean up
@@ -32,13 +31,13 @@ struct media_context {
     AVFormatContext *format_context;
 
     AVCodecContext  *video_codec_ctx;        /**< decodec for decoding the video stream */
-    int             video_stream_index;      /**< index of the video stream to be decoded */
+    int              video_stream_index;     /**< index of the video stream to be decoded */
     AVFrame         *video_frame;            /**< reused video frame, its data is copied to a queue */
 
     // Audio
     SwrContext      *resample_context;      /**< software resampler to make audio usable in SDL3 */
     AVCodecContext  *audio_codec_ctx;       /**< decodec for decoding the audio stream */
-    int             audio_stream_index;     /**< index of the audio stream to be decoded */
+    int              audio_stream_index;    /**< index of the audio stream to be decoded */
     AVFrame         *audio_frame;           /**< reused audio frame, its data is copied to a queue */
 
     AVPacket        *packet;                /**< packet of decoded data of any stream */
@@ -165,7 +164,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     return true;
 }
 
-struct decoder_thread_args *create_decoder_args(const struct app_state *appstate, const char *filename) {
+struct decoder_thread_args *create_decoder_args(app_state *appstate, const char *filename) {
 
     struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
     if (!args) {
@@ -173,7 +172,7 @@ struct decoder_thread_args *create_decoder_args(const struct app_state *appstate
         return NULL;
     }
 
-    args->exit_flag = appstate->stop_decoder_thread;
+    args->exit_flag = &appstate->stop_decoder_thread;
     args->video_queue = appstate->video_queue;
     args->audio_queue = appstate->audio_queue;
     args->filename = filename;
@@ -194,15 +193,15 @@ int play_file(void *data) {
     }
 
     //while there is unparsed data left in the file
-    while (!*args->exit_flag && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+    while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
-        if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
+        if (!SDL_GetAtomicInt(args->exit_flag) && media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
 
             // TODO prolly should make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
                 args->audio_queue, args->exit_flag);
 
-        } else if (!*args->exit_flag && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
+        } else if (!SDL_GetAtomicInt(args->exit_flag) && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
             decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue, args->exit_flag);
         }

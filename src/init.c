@@ -12,7 +12,6 @@
 #include <common.h>
 #include <init.h>
 #include <read_file.h>
-#include <audio.h>
 
 //audio packet format for
 static const int FREQUENCY = 48000;
@@ -45,7 +44,7 @@ app_state *initialize() {
         .format = FORMAT,
         .channels = CHANNELS, //stereo
     };
-    //TODO potentialy use the sdl audio callback thing?
+
     appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, NULL, NULL);
     if (!appstate->audio_stream) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio stream\n");
@@ -71,18 +70,18 @@ app_state *initialize() {
     SCREEN_WIDTH,
     SCREEN_HEIGHT);
 
+    // sets audio_playback_time to 0
+    SDL_SetAtomicU32(&appstate->audio_playback_time, 0);
+
     return appstate;
 }
 
 bool start_threads(app_state *appstate) {
 
     // Creates decoder thread exit flag and sets it to false
-    appstate->stop_decoder_thread = calloc(1, sizeof(bool));
-    appstate->stop_audio_thread = calloc(1, sizeof(bool));
-    if (!appstate->stop_decoder_thread|| !appstate->stop_audio_thread) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate thread exit flags\n");
-        return false;
-    }
+
+    SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
+    SDL_SetAtomicInt(&appstate->stop_audio_thread, 0);
     // Initialize decoder thread args
     struct decoder_thread_args *decoder_args = create_decoder_args(appstate, TEST_FILE_URL); //FIXME filename needs updatin'
     if (!decoder_args) {
@@ -103,8 +102,9 @@ bool start_threads(app_state *appstate) {
     }
     //initializes audio_args members
     audio_args->stream = appstate->audio_stream;
-    audio_args->exit_flag = appstate->stop_audio_thread;
+    audio_args->exit_flag = &appstate->stop_audio_thread;
     audio_args->queue = appstate->audio_queue;
+    audio_args->playback_time = &appstate->audio_playback_time;
     //start audio thread
     appstate->audio_thread = SDL_CreateThread(audio_playback, "audio", audio_args);
     if (!appstate->audio_thread) {

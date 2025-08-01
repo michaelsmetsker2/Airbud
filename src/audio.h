@@ -10,6 +10,8 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
+#include <SDL3/SDL.h>
+
 #include <frame_queue.h>
 #include <libavutil/frame.h>
 #include <libswresample/swresample.h>
@@ -24,10 +26,12 @@
  * it does not warrent a constructor function
  */
 struct audio_thread_args {
-    volatile bool *exit_flag;           /**< default false, whether the thread should stop executing */
+    SDL_AtomicInt *exit_flag;           /**< default 0, 1 whem the thread should stop executing */
 
     frame_queue *queue;                 /**< frame queue to pull frames from */
     SDL_AudioStream  *stream;           /**< audio stream for playback */
+
+    SDL_AtomicU32 *playback_time;       /**< amount of packets of audio played, used to sync video */
 };
 
 /**
