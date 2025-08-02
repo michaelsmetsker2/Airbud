@@ -81,8 +81,7 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
     }
 }
 
-void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
-                  AVFrame *frame, frame_queue *queue,
+void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, frame_queue *queue,
                   SDL_AtomicInt *exit_flag)
 {
     //decodes packet
@@ -106,17 +105,7 @@ void decode_video(AVCodecContext *dec_ctx, const AVPacket *packet,
             }
         }
 
-        //TODO copying frame while holding mutex will slow down the queue
-        //clone the frame
-        AVFrame *frame_copy = av_frame_clone(frame);
-        if (!frame_copy) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't clone frame for queueing\n");
-            SDL_SetAtomicInt(exit_flag, 1);
-            break;
-        }
-
-        if (!enqueue_frame(queue, frame_copy)) {
-            av_frame_free(&frame_copy);
+        if (!enqueue_frame(queue, frame)) {
             SDL_SetAtomicInt(exit_flag, 1);
             SDL_UnlockMutex(queue->mutex);
             break;

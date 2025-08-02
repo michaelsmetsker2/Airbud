@@ -213,6 +213,5 @@ int play_file(void *data) {
     destroy_media_context(&media_ctx);
     //TODO is decoder args getting cleaned up?
 
-
     return 0;
 }

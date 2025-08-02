@@ -61,7 +61,7 @@ AVFrame *dequeue_frame(frame_queue *queue);
 /**
  * @brief destroys a frame_queue freeing all associated resources
  *
- * CURRENTLY DOES INTERNALLY HANDLE MUTEX
+ * does not internally handle mutex
  *
  * @param queue queue to be destroyed
  */
