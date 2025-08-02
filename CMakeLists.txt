@@ -15,8 +15,6 @@ add_executable(airbud src/main.c
         src/decode.h
         src/render.c
         src/render.h
-        src/audio.c
-        src/audio.h
 )
 
 target_include_directories(airbud PRIVATE

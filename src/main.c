@@ -1,7 +1,8 @@
 /**
 * @file init.c
  *
- * contains implementations for all initialization functions related to ffmpeg and sld3
+ * Main loop for the airbud dvd bonus game
+ *
  * @author Michael Metsker
  * @version 1.0
  */
@@ -15,7 +16,7 @@
 #include <init.h>
 
 /* runs on startup */
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage or sumthin?
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage or sumthin? play me twerkin
 
     *appstate = initialize();
     if (*appstate == NULL) {

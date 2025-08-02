@@ -22,7 +22,7 @@ struct decoder_thread_args {
     SDL_AtomicInt *exit_flag;           /**< 0, 1 whether the thread should stop executing */
 
     frame_queue *video_queue;           /**< video queue to add frames to */
-    frame_queue *audio_queue;           /**< audio queue to add frames to */
+    SDL_AudioStream *audio_stream;      /**< audio stream for sound playback */
 
     const char *filename;               /**< file to be played back */
 };

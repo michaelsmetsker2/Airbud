@@ -56,6 +56,7 @@ static void destroy_media_context(struct media_context *ctx) {
     avcodec_free_context(&ctx->video_codec_ctx);
     avcodec_free_context(&ctx->audio_codec_ctx);
     avformat_close_input(&ctx->format_context);
+    // TODO update all this
 }
 
 /**
@@ -172,9 +173,9 @@ struct decoder_thread_args *create_decoder_args(app_state *appstate, const char 
         return NULL;
     }
 
+    args->audio_stream = appstate->audio_stream;
     args->exit_flag = &appstate->stop_decoder_thread;
-    args->video_queue = appstate->video_queue;
-    args->audio_queue = appstate->audio_queue;
+    args->video_queue = appstate->render_queue;
     args->filename = filename;
 
     return args;
@@ -199,7 +200,7 @@ int play_file(void *data) {
 
             // TODO prolly should make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
-                args->audio_queue, args->exit_flag);
+                args->exit_flag, args->audio_stream);
 
         } else if (!SDL_GetAtomicInt(args->exit_flag) && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
@@ -211,5 +212,7 @@ int play_file(void *data) {
 
     destroy_media_context(&media_ctx);
     //TODO is decoder args getting cleaned up?
+
+
     return 0;
 }

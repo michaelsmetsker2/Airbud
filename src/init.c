@@ -7,16 +7,18 @@
  * @version 1.0
  */
 
-#include <audio.h>
 #include <SDL3/SDL.h>
 #include <common.h>
 #include <init.h>
 #include <read_file.h>
 
-//audio packet format for
-static const int FREQUENCY = 48000;
-static const SDL_AudioFormat FORMAT = SDL_AUDIO_S16LE;
-static const int CHANNELS = 2; //stereo
+//audio packet format stream
+static const SDL_AudioSpec format = {
+    .freq = 48000,
+    .format = SDL_AUDIO_S16LE,
+    .channels = 2, //stereo
+};
+
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
@@ -32,34 +34,18 @@ app_state *initialize() {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate codec context\n");
         return NULL;
     }
-    // Creates window and renderer and adds them to state
-    if (!SDL_CreateWindowAndRenderer("airbud/renderer", SCREEN_WIDTH, SCREEN_HEIGHT, 0, &appstate->window, &appstate->renderer)) {
+    // Creates window and renderer and adds them to app_state
+    if (!SDL_CreateWindowAndRenderer("airbud/renderer", SCREEN_WIDTH, SCREEN_HEIGHT,
+        0, &appstate->window, &appstate->renderer))
+    {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create window/renderer\n");
         return NULL;
     }
 
-    //create audio stream
-    const SDL_AudioSpec desired = {
-        .freq = FREQUENCY,
-        .format = FORMAT,
-        .channels = CHANNELS, //stereo
-    };
-
-    appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &desired, NULL, NULL);
-    if (!appstate->audio_stream) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio stream\n");
-        return NULL;
-    }
-
-    // Creates reused video and audio frame_queue for the app
-    appstate->video_queue = create_frame_queue(VIDEO_BUFFER_CAP);
-    if (!appstate->video_queue) {
+    // Creates reused frame_queue for the app
+    appstate->render_queue = create_frame_queue();
+    if (!appstate->render_queue) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate video frame_queue\n");
-        return NULL;
-    }
-    appstate->audio_queue = create_frame_queue(AUDIO_BUFFER_CAP);
-    if (!appstate->video_queue) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate audio frame_queue\n");
         return NULL;
     }
 
@@ -78,12 +64,20 @@ app_state *initialize() {
 
 bool start_threads(app_state *appstate) {
 
-    // Creates decoder thread exit flag and sets it to false
+    //starts sdl audio stream
+    appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &format, NULL, NULL);
+    if (!appstate->audio_stream) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio stream\n");
+        return NULL;
+    }
 
+    SDL_ResumeAudioStreamDevice(appstate->audio_stream);
+
+    // Creates decoder thread exit flag and sets it to false
     SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
-    SDL_SetAtomicInt(&appstate->stop_audio_thread, 0);
+
     // Initialize decoder thread args
-    struct decoder_thread_args *decoder_args = create_decoder_args(appstate, TEST_FILE_URL); //FIXME filename needs updatin'
+    struct decoder_thread_args *decoder_args = create_decoder_args(appstate, TEST_FILE_URL);
     if (!decoder_args) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to create playback args\n");
         return false;
@@ -92,23 +86,6 @@ bool start_threads(app_state *appstate) {
     appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", decoder_args);
     if (!appstate->decoder_thread) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");
-        return false;
-    }
-
-    struct audio_thread_args *audio_args = malloc(sizeof(struct audio_thread_args));
-    if (!audio_args) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio thread args\n");
-        return false;
-    }
-    //initializes audio_args members
-    audio_args->stream = appstate->audio_stream;
-    audio_args->exit_flag = &appstate->stop_audio_thread;
-    audio_args->queue = appstate->audio_queue;
-    audio_args->playback_time = &appstate->audio_playback_time;
-    //start audio thread
-    appstate->audio_thread = SDL_CreateThread(audio_playback, "audio", audio_args);
-    if (!appstate->audio_thread) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio thread\n");
         return false;
     }
 

@@ -14,11 +14,6 @@
 #include <SDL3/SDL.h>
 #include <libavutil/frame.h>
 
-/** the max amount of frames to buffer / hold in a queue */
-static const int VIDEO_BUFFER_CAP = 10;
-/** the max amount of audio frames to buffer **/
-static const int AUDIO_BUFFER_CAP = 30;
-
 /**
  * @struct frame_queue
  * @brief memory safe queue of AVFrames
@@ -38,10 +33,9 @@ typedef struct frame_queue {
 
 /**
  * @brief creates and populates a frame queue
- * @param capacity Size of the array, should be set with either VIDEO_BUFFER_CAP or AUDIO_BUFFER_CAP
  * @return *frame_queue - pointer to the created queue
  */
-frame_queue *create_frame_queue(int capacity);
+frame_queue *create_frame_queue();
 
 /**
  * @brief takes a copy of a frame (made externally) and sends it to the queue

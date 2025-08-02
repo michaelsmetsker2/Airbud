@@ -14,12 +14,14 @@
 
 #include <frame_queue.h>
 
+/** the max amount of frames to buffer / hold in a queue */
+static const int VIDEO_BUFFER_CAP = 10;
 
-frame_queue *create_frame_queue(const int capacity) {
+frame_queue *create_frame_queue() {
     frame_queue *queue = malloc(sizeof(frame_queue));
     if (!queue) return NULL;
 
-    queue->capacity = capacity;
+    queue->capacity = VIDEO_BUFFER_CAP;
     queue->frames = malloc(sizeof(AVFrame*)* queue->capacity);
     if (!queue->frames) {
         free(queue);
