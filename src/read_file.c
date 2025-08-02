@@ -178,6 +178,7 @@ struct decoder_thread_args *create_decoder_args(app_state *appstate, const char 
     args->video_queue = appstate->render_queue;
     args->filename = filename;
 
+
     return args;
 }
 
