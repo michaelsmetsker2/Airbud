@@ -8,18 +8,52 @@
  * @version 1.0
  */
 
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-
 #include <SDL3/SDL.h>
 
 #include <read_file.h>
 #include <decode.h>
+#include <frame_queue.h>
 
-#include <libswresample/swresample.h>
-
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
+
+/**
+ * @struct decoder_thread_args
+ * @brief Parameters for the decoder thread.
+ */
+struct decoder_thread_args {
+    SDL_AtomicInt *exit_flag;           /**< 0, 1 whether the thread should stop executing */
+
+    frame_queue *video_queue;           /**< video queue to add frames to */
+    SDL_AudioStream *audio_stream;      /**< audio stream for sound playback */
+
+    const char *filename;               /**< file to be played back */
+};
+
+bool create_decoder_thread(app_state *appstate, const char *filename) {
+
+    // creates and populates args
+    struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
+    if (!args) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate args for decoder thread\n");
+        return false;
+    }
+    args->audio_stream = appstate->audio_stream;
+    args->exit_flag = &appstate->stop_decoder_thread;
+    args->video_queue = appstate->render_queue;
+    args->filename = filename;
+
+    //starts decoder thread
+    appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", args);
+    if (!appstate->decoder_thread) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");
+        return false;
+    }
+
+    return true;
+}
 
 /**
  * @struct media_context
@@ -56,7 +90,6 @@ static void destroy_media_context(struct media_context *ctx) {
     avcodec_free_context(&ctx->video_codec_ctx);
     avcodec_free_context(&ctx->audio_codec_ctx);
     avformat_close_input(&ctx->format_context);
-    // TODO update all this
 }
 
 /**
@@ -80,7 +113,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
         return false;
     }
 
-    /* Finds best video codec and stream */ //TODO p sure all these are the same
+    /* Finds best video codec and stream */
     const AVCodec *video_codec = NULL;
     media_ctx->video_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_VIDEO, -1, -1, &video_codec, 0);
     if (media_ctx->video_stream_index < 0 || !video_codec) {
@@ -91,7 +124,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     const AVCodec *audio_codec = NULL;
     media_ctx->audio_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &audio_codec, 0);
     if (media_ctx->audio_stream_index < 0 || !video_codec) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best audio stream or decoder \n"); //TODO potentially not fatal?
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best audio stream or decoder \n");
         return false;
     }
 
@@ -163,23 +196,6 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     }
 
     return true;
-}
-
-struct decoder_thread_args *create_decoder_args(app_state *appstate, const char *filename) {
-
-    struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
-    if (!args) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate args for decoder thread\n");
-        return NULL;
-    }
-
-    args->audio_stream = appstate->audio_stream;
-    args->exit_flag = &appstate->stop_decoder_thread;
-    args->video_queue = appstate->render_queue;
-    args->filename = filename;
-
-
-    return args;
 }
 
 int play_file(void *data) {

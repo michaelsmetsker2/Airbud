@@ -14,14 +14,34 @@
 #include <stdbool.h>
 
 /**
- * @brief
- *
- * @param state app_state state that contains window, renderer and queue for rendering
- * @return true on success false otherwise
+ * @struct render_thread_args
+ * @brief Struct containing nesesary information for the render thread
+ * although these are just a subset of appstate, this allows for more encapsulization
  */
-bool render_frame(app_state *state);
+struct render_thread_args {
+    SDL_AtomicInt *exit_flag;           /**< exit flag for safe quick exit */
 
+    SDL_Window *window;                 /**< main window for the app */
+    SDL_Renderer *renderer;             /**< main renderer for the app */
+    SDL_Texture *texture;               /**< reused texture to avoid repeate declarations and memory churn */
 
+    frame_queue *queue;                 /**< queue of avframes to render */
+    SDL_AtomicU32 *audio_playback_time; /**< audio clock to sync playnack with */
+};
 
+/**
+ * @brief creates render thread with the correct parameters
+ * @return true on success, false otherwise
+ */
+bool create_render_thread(app_state *appstate);
+
+/**
+ * @brief thread that manages rendering
+ * //TODO update for render layers?
+ *
+ * @param data pointer to a render_thread_args struct
+ * @return 0 on clean shutdown
+ */
+ int render_frames(void *data);
 
 #endif //RENDER_H

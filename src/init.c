@@ -11,6 +11,7 @@
 #include <common.h>
 #include <init.h>
 #include <read_file.h>
+#include <render.h>
 
 //audio packet format stream
 static const SDL_AudioSpec format = {
@@ -18,7 +19,6 @@ static const SDL_AudioSpec format = {
     .format = SDL_AUDIO_S16LE,
     .channels = 2, //stereo
 };
-
 
 app_state *initialize() {
     SDL_SetAppMetadata("airbud", "1.0", "com.airbud.renderer");
@@ -68,24 +68,21 @@ bool start_threads(app_state *appstate) {
     appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &format, NULL, NULL);
     if (!appstate->audio_stream) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create audio stream\n");
-        return NULL;
-    }
-
-    SDL_ResumeAudioStreamDevice(appstate->audio_stream);
-
-    // Creates decoder thread exit flag and sets it to false
-    SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
-
-    // Initialize decoder thread args
-    struct decoder_thread_args *decoder_args = create_decoder_args(appstate, TEST_FILE_URL);
-    if (!decoder_args) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to create playback args\n");
         return false;
     }
-    //This starts the decoder thread off on the first file
-    appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", decoder_args);
-    if (!appstate->decoder_thread) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");
+    SDL_ResumeAudioStreamDevice(appstate->audio_stream);
+
+    // Creates thread exit flags and sets them to false
+    SDL_SetAtomicInt(&appstate->stop_render_thread, 0);
+    SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
+
+    if (!create_decoder_thread(appstate, TEST_FILE_URL)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initiazlize the decoder thread\n");
+        return false;
+    }
+
+    if (!create_render_thread(appstate)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
         return false;
     }
 

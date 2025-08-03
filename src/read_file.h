@@ -11,28 +11,14 @@
 #ifndef READ_FILE_H
 #define READ_FILE_H
 
-#include <frame_queue.h>
 #include <init.h>
 
 /**
- * @struct decoder_thread_args
- * @brief Parameters for the decoder thread.
- */
-struct decoder_thread_args {
-    SDL_AtomicInt *exit_flag;           /**< 0, 1 whether the thread should stop executing */
-
-    frame_queue *video_queue;           /**< video queue to add frames to */
-    SDL_AudioStream *audio_stream;      /**< audio stream for sound playback */
-
-    const char *filename;               /**< file to be played back */
-};
-
-/**
- * @brief
- * @param appstate copies references to various variables from appstate into decoder_args
+ * @brief Creates and starts the decoder thread with the correct parameters
+ * @param appstate copies references to various variables from appstate into decoder_thread_args
  * @param filename name of the file to read from
  */
-struct decoder_thread_args *create_decoder_args(app_state *appstate, const char *filename);
+bool create_decoder_thread(app_state *appstate, const char *filename);
 // TODO do i have a way to clean up args?
 
 /**

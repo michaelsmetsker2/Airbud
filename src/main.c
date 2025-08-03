@@ -12,7 +12,6 @@
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL_main.h>
 
-#include <render.h>
 #include <init.h>
 
 /* runs on startup */
@@ -30,19 +29,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add 
     return SDL_APP_CONTINUE; /* carry on with the program!*/
 }
 
-/* This function runs once per frame, main loop*/
+/* This required function runs once per frame, main loop*/
 SDL_AppResult SDL_AppIterate(void *appstate) {
-
-    render_frame(appstate);
-
-    //Render layers
-
-    //TODO menu layer/buttons
 
     return SDL_APP_CONTINUE;
 }
 
-/* Runs when a new event (mouse input, keypresses, etc.) occurs. */
+/* Runs when an event (mouse input, keypresses, etc.) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
