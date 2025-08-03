@@ -213,13 +213,13 @@ int play_file(void *data) {
     //while there is unparsed data left in the file
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
-        if (!SDL_GetAtomicInt(args->exit_flag) && media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
+        if (media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
 
             // TODO prolly should make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
                 args->exit_flag, args->audio_stream);
 
-        } else if (!SDL_GetAtomicInt(args->exit_flag) && media_ctx.packet->stream_index == media_ctx.video_stream_index) {
+        } else if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
             decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue, args->exit_flag);
         }
