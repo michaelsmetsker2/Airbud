@@ -15,7 +15,7 @@
 #include <frame_queue.h>
 
 /** the max amount of frames to buffer / hold in a queue */
-static const int VIDEO_BUFFER_CAP = 10;
+static const int VIDEO_BUFFER_CAP = 32;
 
 frame_queue *create_frame_queue() {
     frame_queue *queue = malloc(sizeof(frame_queue));

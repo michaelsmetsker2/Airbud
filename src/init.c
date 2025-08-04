@@ -56,8 +56,8 @@ app_state *initialize() {
     SCREEN_WIDTH,
     SCREEN_HEIGHT);
 
-    // sets audio_playback_time to 0
-    SDL_SetAtomicU32(&appstate->audio_playback_time, 0);
+    // sets total_audio_samples to 0
+    SDL_SetAtomicU32(&appstate->total_audio_samples, 0);
 
     return appstate;
 }

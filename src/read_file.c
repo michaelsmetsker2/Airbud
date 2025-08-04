@@ -28,6 +28,7 @@ struct decoder_thread_args {
 
     frame_queue *video_queue;           /**< video queue to add frames to */
     SDL_AudioStream *audio_stream;      /**< audio stream for sound playback */
+    SDL_AtomicU32 *total_audio_samples; /**< total ammount of samples added to the audio queue, used to sync renderer */
 
     const char *filename;               /**< file to be played back */
 };
@@ -44,6 +45,7 @@ bool create_decoder_thread(app_state *appstate, const char *filename) {
     args->exit_flag = &appstate->stop_decoder_thread;
     args->video_queue = appstate->render_queue;
     args->filename = filename;
+    args->total_audio_samples = &appstate->total_audio_samples;
 
     //starts decoder thread
     appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", args);
@@ -95,6 +97,8 @@ static void destroy_media_context(struct media_context *ctx) {
 /**
  * Initializes the media context by opening the input file and preparing
  * the codec, format context, and frame/packet allocations for video decoding
+ *
+ * TODO turn a bunch of this into preset values to speed up initialization
  *
  * @param media_ctx Pointer to the media context to initialize
  * @param filename  Path to the media file to open
@@ -217,7 +221,7 @@ int play_file(void *data) {
 
             // TODO prolly should make these return a value on failure
             decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
-                args->exit_flag, args->audio_stream);
+                args->exit_flag, args->audio_stream, args->total_audio_samples);
 
         } else if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 

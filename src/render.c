@@ -15,6 +15,9 @@
 
 static const Sint8 TIMEOUT_DELAY_MS = 125;
 
+//Time base of the media formate context
+static const AVRational time_base = {1, 90000};
+
 bool create_render_thread(app_state *appstate) {
 
     // creates and populates args
@@ -29,7 +32,8 @@ bool create_render_thread(app_state *appstate) {
     args->window = appstate->window;
     args->texture = appstate->base_texture;
     args->queue = appstate->render_queue;
-    args->audio_playback_time = &appstate->audio_playback_time;
+    args->total_audio_samples = &appstate->total_audio_samples;
+    args->audio_stream = appstate->audio_stream;
 
     //starts decoder thread
     appstate->decoder_thread = SDL_CreateThread(render_frames, "decoder", args);
@@ -67,25 +71,26 @@ bool render_loop(const struct render_thread_args *args) {
         return false;
     }
 
-    //uint32_t audio_time_ms = SDL_GetAtomicU32(&state->audio_playback_time) * 1000 / 48000;
+    // bytes enqueued devided by channels (stereo) and bytes per sample (16 bit)
+    const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (2 * 2);
+    const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
-    const uint64_t frame_time = current_frame->best_effort_timestamp;
-    const uint64_t audio_time = SDL_GetAtomicU32(args->audio_playback_time);
+    //SDL_Log("samples played: %" PRIu32, played_audio_samples);
+    const double played_ms = played_audio_samples * 1000.0 / 48000.0;
+    SDL_Log("samples played: %f", played_ms);
 
-    SDL_Log("frame time: %" PRIu64, frame_time);
-    SDL_Log("audio time: %" PRIu64, audio_time);
+    const double pts_ms = (double)current_frame->best_effort_timestamp * av_q2d(time_base) * 1000.0;
+    SDL_Log("frame time: %f", pts_ms);
 
-    /*
-    if (frame_time < audio_time) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "dropping slow frame");
-        return false;
+
+    if (pts_ms > played_ms) {
+        const double delay_ms = pts_ms - played_ms;
+        SDL_Delay((uint32_t)delay_ms);
+    } else {
+        SDL_Log("dropping frame");
+        av_frame_free(&current_frame);
+        return true;
     }
-
-    uint64_t wait_time = frame_time - audio_time;
-    SDL_Delay(wait_time * 1000 / 48000);
-    */
-
-    SDL_Delay(32);
 
     SDL_UpdateYUVTexture(args->texture, NULL,
         current_frame->data[0], current_frame->linesize[0],   // Y plane

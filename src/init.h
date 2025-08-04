@@ -25,7 +25,7 @@ typedef struct app_state {
     SDL_Texture        *base_texture;         /**< Reused texture for main video playback */
 
     SDL_AudioStream    *audio_stream;         /**< audio stream for sound playback */
-    SDL_AtomicU32       audio_playback_time;  /**< amount of packets of audio played, used to sync video in ms*/ //FIXME
+    SDL_AtomicU32       total_audio_samples;  /**< total amount of packets of audio enqueued, used for syncing renderer */
 
     frame_queue        *render_queue;         /**< render queue of buffered video frames */
 

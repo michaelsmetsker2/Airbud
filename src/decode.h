@@ -27,9 +27,10 @@
  * @param resampler resampler context for changing audio to an SDL3 playable format
  * @param exit_flag Exit flag for early exit
  * @param stream audio stream to push packet data to
+ * @param total_audio_samples total amount of samples pushed to the audio queue, used to sync with renderer
  */
 void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, SwrContext *resampler,
-                  SDL_AtomicInt *exit_flag, SDL_AudioStream *stream);
+                  SDL_AtomicInt *exit_flag, SDL_AudioStream *stream, SDL_AtomicU32 *total_audio_samples);
 
 /**
  * Decodes a video packet and queues and queues the resulting frames if any.

@@ -17,12 +17,12 @@
 #include <frame_queue.h>
 
 
-static const Sint32 TIMEOUT_DELAY_MS = 200;
+static const Sint32 TIMEOUT_DELAY_MS = 4000;
 
 static const int SAMPLE_RATE = 48000;
 
 void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *frame, SwrContext *resampler,
-                  SDL_AtomicInt *exit_flag, SDL_AudioStream *stream)
+                  SDL_AtomicInt *exit_flag, SDL_AudioStream *stream, SDL_AtomicU32 *total_audio_samples)
 {
     //decodes packet
     if (avcodec_send_packet(dec_ctx, packet) != 0) {
@@ -67,13 +67,16 @@ void decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
             break;
         }
 
-        /*
-        // increment playback_time
-        const uint32_t old_val = SDL_GetAtomicU32(args->playback_time);
-        const uint32_t new_val = frame->nb_samples * 1000 / SAMPLE_RATE + old_val;
-        SDL_Log("audio time: %" PRIu64, new_val);
-        SDL_SetAtomicU32(args->playback_time, new_val);
-         */
+
+        // increment total samples
+        uint32_t prev_samples;
+        do {
+            prev_samples = SDL_GetAtomicU32(total_audio_samples);
+        } while (!SDL_CompareAndSwapAtomicU32(total_audio_samples, prev_samples, prev_samples + frame->nb_samples));
+
+
+        SDL_SetAtomicU32(total_audio_samples, prev_samples + frame->nb_samples);
+
 
         av_frame_unref(frame);
         av_frame_free(&frame_resampled);

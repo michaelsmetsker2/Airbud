@@ -26,7 +26,8 @@ struct render_thread_args {
     SDL_Texture *texture;               /**< reused texture to avoid repeate declarations and memory churn */
 
     frame_queue *queue;                 /**< queue of avframes to render */
-    SDL_AtomicU32 *audio_playback_time; /**< audio clock to sync playnack with */
+    SDL_AtomicU32 *total_audio_samples; /**< total amount of audio samples pushed to the audio queue, used for syncing */
+    SDL_AudioStream *audio_stream;      /**< audio stream where audio packets are queued */
 };
 
 /**
