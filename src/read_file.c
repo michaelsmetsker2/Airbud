@@ -19,6 +19,8 @@
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
 
+#define SAMPLE_RATE 48000
+
 /**
  * @struct decoder_thread_args
  * @brief Parameters for the decoder thread.
@@ -171,7 +173,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     if (swr_alloc_set_opts2(&media_ctx->resample_context,
         &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO,
         AV_SAMPLE_FMT_S16,
-        48000,
+        SAMPLE_RATE,
 
         &media_ctx->audio_codec_ctx->ch_layout,
         media_ctx->audio_codec_ctx->sample_fmt,
