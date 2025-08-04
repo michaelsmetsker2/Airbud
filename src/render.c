@@ -77,10 +77,8 @@ bool render_loop(const struct render_thread_args *args) {
 
     //SDL_Log("samples played: %" PRIu32, played_audio_samples);
     const double played_ms = played_audio_samples * 1000.0 / 48000.0;
-    SDL_Log("samples played: %f", played_ms);
 
     const double pts_ms = (double)current_frame->best_effort_timestamp * av_q2d(time_base) * 1000.0;
-    SDL_Log("frame time: %f", pts_ms);
 
 
     if (pts_ms > played_ms) {
