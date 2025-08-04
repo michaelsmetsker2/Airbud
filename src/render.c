@@ -1,6 +1,7 @@
 /**
  * @file decode.h
- * Functions relating to displaying video and playing audio
+ *
+ * functions for rendering thread and syncing rendering to the audio
  *
  * @author Michael Metkser
  * @version 1.0
@@ -13,9 +14,15 @@
 #include <render.h>
 #include <init.h>
 
-static const Sint8 TIMEOUT_DELAY_MS = 125;
+#define TIMEOUT_DELAY_MS 125
+#define SAMPLE_RATE 48000.0
+#define NUM_CHANNELS 2 // stereo
+#define BYTES_PER_SAMPLE 2 // 16 bit
 
-//Time base of the media formate context
+#define AUDEO_LATENCY_MS 200 //bit confused on this one, seems to line up good though
+#define LAG_TOLERANCE_MS 20.0 // one small amount of time behind shouldn't drop the frame
+
+//Time base of the media format context, hardcoded as only this dvd is needed
 static const AVRational time_base = {1, 90000};
 
 bool create_render_thread(app_state *appstate) {
@@ -50,7 +57,7 @@ bool create_render_thread(app_state *appstate) {
  * @param args all nesesary information in a render_thread_args struct
  * @return true on success, false otherwise
  */
-bool render_loop(const struct render_thread_args *args) {
+static bool render_loop(const struct render_thread_args *args) {
     /* waits for mutex */
     SDL_LockMutex(args->queue->mutex);
 
@@ -67,29 +74,29 @@ bool render_loop(const struct render_thread_args *args) {
 
     if (!current_frame) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error dequeueing frame");
-        av_frame_free(&current_frame);
         return false;
     }
 
-    // bytes enqueued devided by channels (stereo) and bytes per sample (16 bit)
-    const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (2 * 2);
+    // sync playback time to the audio
+
+    const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (NUM_CHANNELS * BYTES_PER_SAMPLE);
     const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
-    //SDL_Log("samples played: %" PRIu32, played_audio_samples);
-    const double played_ms = played_audio_samples * 1000.0 / 48000.0;
+    // Seconds to MS devided by sample rate plus the hardware delay
+    const double played_ms = played_audio_samples * 1000.0 / SAMPLE_RATE + AUDEO_LATENCY_MS;
 
     const double pts_ms = (double)current_frame->best_effort_timestamp * av_q2d(time_base) * 1000.0;
-
 
     if (pts_ms > played_ms) {
         const double delay_ms = pts_ms - played_ms;
         SDL_Delay((uint32_t)delay_ms);
-    } else {
+    } else if (played_ms - pts_ms > LAG_TOLERANCE_MS) {
         SDL_Log("dropping frame");
         av_frame_free(&current_frame);
         return true;
     }
 
+    // render the frame
     SDL_UpdateYUVTexture(args->texture, NULL,
         current_frame->data[0], current_frame->linesize[0],   // Y plane
         current_frame->data[1], current_frame->linesize[1],   // U plane
@@ -100,12 +107,8 @@ bool render_loop(const struct render_thread_args *args) {
     SDL_RenderPresent(args->renderer);
 
     SDL_FlushRenderer(args->renderer);
-
-
-    av_frame_unref(current_frame);
     av_frame_free(&current_frame);
     return true;
-
 }
 
 int render_frames(void *data) {

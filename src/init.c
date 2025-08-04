@@ -13,6 +13,9 @@
 #include <read_file.h>
 #include <render.h>
 
+#define SCREEN_WIDTH 720
+#define SCREEN_HEIGHT 480
+
 //audio packet format stream
 static const SDL_AudioSpec format = {
     .freq = 48000,

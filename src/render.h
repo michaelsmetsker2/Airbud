@@ -1,7 +1,7 @@
 /**
  * @file render.h
  *
- * Functions relating to displaying video and playing audio
+ * Functions relating to displaying video and syncing it to audio
  *
  * @author Michael Metkser
  * @version 1.0
