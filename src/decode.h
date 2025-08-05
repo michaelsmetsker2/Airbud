@@ -16,8 +16,6 @@
 
 #include <frame_queue.h>
 
-//TODO honestly either make it one function or fucking pass in the whole args, cba at this point
-
 /**
  * Decodes an audio packet and queues and queues the resulting frames if any.
  *

@@ -120,7 +120,7 @@ int render_frames(void *data) {
     }
 
     SDL_Log("test");
-    // TODO cleanup
+    // Args are a subset of appstate so cleanup can be handled by the main thread
     return true;
 }
 
