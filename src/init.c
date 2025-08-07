@@ -79,13 +79,13 @@ bool start_threads(app_state *appstate) {
     SDL_SetAtomicInt(&appstate->stop_render_thread, 0);
     SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
 
-    if (!create_decoder_thread(appstate, TEST_FILE_URL)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initiazlize the decoder thread\n");
+    if (!create_render_thread(appstate)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
         return false;
     }
 
-    if (!create_render_thread(appstate)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
+    if (!create_decoder_thread(appstate, TEST_FILE_URL)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initiazlize the decoder thread\n");
         return false;
     }
 

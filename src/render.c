@@ -102,6 +102,10 @@ static bool render_loop(const struct render_thread_args *args) {
         current_frame->data[1], current_frame->linesize[1],   // U plane
         current_frame->data[2], current_frame->linesize[2]);  // V plane
 
+
+    printf("played: %f" "\n", played_ms);
+    printf("pts   : %f" "\n", pts_ms);
+
     SDL_RenderClear(args->renderer);
     SDL_RenderTexture(args->renderer, args->texture, NULL, NULL);  // whole texture to window
     SDL_RenderPresent(args->renderer);

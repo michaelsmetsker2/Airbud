@@ -129,7 +129,7 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
     /* Finds best audio codec and stream */
     const AVCodec *audio_codec = NULL;
     media_ctx->audio_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &audio_codec, 0);
-    if (media_ctx->audio_stream_index < 0 || !video_codec) {
+    if (media_ctx->audio_stream_index < 0 || !audio_codec) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best audio stream or decoder \n");
         return false;
     }
