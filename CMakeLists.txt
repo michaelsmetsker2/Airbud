@@ -29,7 +29,6 @@ target_link_libraries(airbud PRIVATE
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavcodec.dll.a"
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavformat.dll.a"
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libavutil.dll.a"
-        #"${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libswscale.dll.a" so far unused
         "${CMAKE_SOURCE_DIR}/include/ffmpeg/lib/libswresample.dll.a"
 )
 

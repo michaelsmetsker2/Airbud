@@ -7,8 +7,6 @@
  * @version 1.0
  */
 
-//TODO end whole program when a single thread errors out
-
 #define SDL_MAIN_USE_CALLBACKS 1  /* use the callbacks instead of main() */
 #include <SDL3/SDL_main.h>
 
@@ -55,6 +53,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 /* Runs once at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     /* SDL will clean up the window/renderer for us. */
+
+    //TODO end whole program when a single thread errors out
 
     //TODO clean up framequeue
     //SDL_DestroyAudioStream

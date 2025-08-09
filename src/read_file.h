@@ -14,11 +14,10 @@
 #include <init.h>
 
 /**
- * @brief Creates and starts the decoder thread with the correct parameters
+ * @brief Creates and starts the decoder thread with the correct parameters and starts it off at the beginning of the app
  * @param appstate copies references to various variables from appstate into decoder_thread_args
- * @param filename name of the file to read from
  */
-bool create_decoder_thread(app_state *appstate, const char *filename);
+bool create_decoder_thread(app_state *appstate);
 // TODO do i have a way to clean up args?
 
 /**
@@ -28,8 +27,5 @@ bool create_decoder_thread(app_state *appstate, const char *filename);
  * @return 0 if clean shutdown
  */
 int play_file(void *data);
-
-//TODO add a switch file function
-// REMEMBER to set audio playback time to zero
 
 #endif //READ_FILE_H

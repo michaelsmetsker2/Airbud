@@ -78,7 +78,6 @@ static bool render_loop(const struct render_thread_args *args) {
     }
 
     // sync playback time to the audio
-
     const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (NUM_CHANNELS * BYTES_PER_SAMPLE);
     const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
@@ -102,7 +101,6 @@ static bool render_loop(const struct render_thread_args *args) {
         current_frame->data[1], current_frame->linesize[1],   // U plane
         current_frame->data[2], current_frame->linesize[2]);  // V plane
 
-
     printf("played: %f" "\n", played_ms);
     printf("pts   : %f" "\n", pts_ms);
 
@@ -123,9 +121,13 @@ int render_frames(void *data) {
         render_loop(args);
     }
 
-    SDL_Log("test");
-    // Args are a subset of appstate so cleanup can be handled by the main thread
+    //if endpoint reached
+    //clear queue
+    //signal?? cond maybe
+    //wait for signal to resume
+
     return true;
+
 }
 
 

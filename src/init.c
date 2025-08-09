@@ -8,7 +8,6 @@
  */
 
 #include <SDL3/SDL.h>
-#include <common.h>
 #include <init.h>
 #include <read_file.h>
 #include <render.h>
@@ -84,7 +83,7 @@ bool start_threads(app_state *appstate) {
         return false;
     }
 
-    if (!create_decoder_thread(appstate, TEST_FILE_URL)) {
+    if (!create_decoder_thread(appstate)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initiazlize the decoder thread\n");
         return false;
     }

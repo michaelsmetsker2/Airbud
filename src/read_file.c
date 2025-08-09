@@ -21,6 +21,8 @@
 
 #define SAMPLE_RATE 48000
 
+static const char FILEPATH[] = "Z:/projects/airbud/VTS_03_0.VOB";
+
 /**
  * @struct decoder_thread_args
  * @brief Parameters for the decoder thread.
@@ -35,7 +37,7 @@ struct decoder_thread_args {
     const char *filename;               /**< file to be played back */
 };
 
-bool create_decoder_thread(app_state *appstate, const char *filename) {
+bool create_decoder_thread(app_state *appstate) {
 
     // creates and populates args
     struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
@@ -46,7 +48,6 @@ bool create_decoder_thread(app_state *appstate, const char *filename) {
     args->audio_stream = appstate->audio_stream;
     args->exit_flag = &appstate->stop_decoder_thread;
     args->video_queue = appstate->render_queue;
-    args->filename = filename;
     args->total_audio_samples = &appstate->total_audio_samples;
 
     //starts decoder thread
@@ -66,19 +67,17 @@ bool create_decoder_thread(app_state *appstate, const char *filename) {
  * instead of having them as a const.
  */
 struct media_context {
-    AVFormatContext *format_context;
+    AVFormatContext *format_context;         /**< information about the file being decoded */
+    AVPacket        *packet;                 /**< packet of decoded data of any stream */
 
     AVCodecContext  *video_codec_ctx;        /**< decodec for decoding the video stream */
     int              video_stream_index;     /**< index of the video stream to be decoded */
     AVFrame         *video_frame;            /**< reused video frame, its data is copied to a queue */
 
-    // Audio
-    SwrContext      *resample_context;      /**< software resampler to make audio usable in SDL3 */
-    AVCodecContext  *audio_codec_ctx;       /**< decodec for decoding the audio stream */
-    int              audio_stream_index;    /**< index of the audio stream to be decoded */
-    AVFrame         *audio_frame;           /**< reused audio frame, its data is copied to a queue */
-
-    AVPacket        *packet;                /**< packet of decoded data of any stream */
+    AVCodecContext  *audio_codec_ctx;        /**< decodec for decoding the audio stream */
+    int              audio_stream_index;     /**< index of the audio stream to be decoded */
+    AVFrame         *audio_frame;            /**< reused audio frame, its data is copied to a queue */
+    SwrContext      *resample_context;       /**< software resampler to make audio usable in SDL3 */
 };
 
 /**
@@ -86,7 +85,6 @@ struct media_context {
  * @param ctx struct to destroy
  */
 static void destroy_media_context(struct media_context *ctx) {
-
     av_frame_free(&ctx->video_frame);
     av_frame_free(&ctx->audio_frame);
     av_packet_free(&ctx->packet);
@@ -100,16 +98,15 @@ static void destroy_media_context(struct media_context *ctx) {
  * Initializes the media context by opening the input file and preparing
  * the codec, format context, and frame/packet allocations for video decoding
  *
- * TODO turn a bunch of this into preset values to speed up initialization
+ * TODO hardcode a bunch of these valuse as im only using one file
  *
  * @param media_ctx Pointer to the media context to initialize
- * @param filename  Path to the media file to open
  * @return true on success, false on failure. On failure, no cleanup is performed.
  */
-static bool setup_file_context(struct media_context *media_ctx, const char *filename) {
+static bool setup_file_context(struct media_context *media_ctx) {
 
     // opens the file (only looks at header)
-    if (avformat_open_input(&media_ctx->format_context, filename, NULL, NULL) < 0) {
+    if (avformat_open_input(&media_ctx->format_context, FILEPATH, NULL, NULL) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't open the file");
         return false;
     }
@@ -207,13 +204,35 @@ static bool setup_file_context(struct media_context *media_ctx, const char *file
 int play_file(void *data) {
     const struct decoder_thread_args *args = (struct decoder_thread_args *) data;
 
-    // Sets all members to NULL
+    // Sets up media context struct
     struct media_context media_ctx = {0};
-
-    /* set up file context */
-    if (!setup_file_context(&media_ctx, args->filename)) {
+    if (!setup_file_context(&media_ctx)) {
         destroy_media_context(&media_ctx);
         return -1;
+    }
+
+    while (has direction?) {
+        parse instructions and seek tot he correct point in the file
+        decode loop
+
+        if new instructions
+
+        set directions to null potentially?
+
+
+        if (SDL_GetAtomicInt(args->exit_flag)) {
+            //exit flag has triggererd, not an error
+
+            if (there are new instrutions) {
+                set the new instructions
+            } else {
+                break;
+            }
+        } else {
+            break;
+            // a break has occured because of an error
+        }
+
     }
 
     //while there is unparsed data left in the file
@@ -221,13 +240,16 @@ int play_file(void *data) {
 
         if (media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
 
-            // TODO prolly should make these return a value on failure
-            decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
-                args->exit_flag, args->audio_stream, args->total_audio_samples);
+            if (!decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
+                args->audio_stream, args->total_audio_samples)) {
+                break;
+            }
 
         } else if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
 
-            decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue, args->exit_flag);
+            if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
+                break;
+            }
         }
 
         av_packet_unref(media_ctx.packet);
@@ -235,6 +257,8 @@ int play_file(void *data) {
 
     destroy_media_context(&media_ctx);
     //TODO is decoder args getting cleaned up?
-
+    //need to differentiate an error or anterrupt for a new seek pint
     return 0;
 }
+
+// TODO in seek function make it trigger an SDL_COND at the end
