@@ -14,6 +14,17 @@
 #include <init.h>
 
 /**
+ *
+ */
+struct decoder_instructions {
+
+    struct game_state *state;
+
+    SDL_Mutex *mutex;
+    SDL_Condition *instruction_available;
+};
+
+/**
  * @brief Creates and starts the decoder thread with the correct parameters and starts it off at the beginning of the app
  * @param appstate copies references to various variables from appstate into decoder_thread_args
  */

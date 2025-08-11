@@ -16,19 +16,6 @@
 #include <stdbool.h>
 
 /**
- * @struct playback_instructions
- * @brief TODO documentation on this and all members
- */
-typedef struct playback_instructions {
-
-    bool audio_only;
-    Uint32 start_pts;
-    Uint32 end_pts;
-    SDL_Condition *end_reached;
-
-} playback_instructions;
-
-/**
  * @struct app_state
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
@@ -47,9 +34,7 @@ typedef struct app_state {
 
     SDL_Thread         *decoder_thread;       /**< pointer to the thread that handles decoding */
     SDL_AtomicInt       stop_decoder_thread;  /**< The exit flag for the decoding thread */
-    playback_instructions instructions;       /**< TODO */
 
-    /* TODO game_state??? potentially idk */
 } app_state;
 
 /**

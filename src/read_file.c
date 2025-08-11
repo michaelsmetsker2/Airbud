@@ -19,7 +19,9 @@
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
 
-#define SAMPLE_RATE 48000
+#include "game_states.h"
+
+#define SAMPLE_RATE 48000 // audio sample rate
 
 static const char FILEPATH[] = "Z:/projects/airbud/VTS_03_0.VOB";
 
@@ -28,13 +30,13 @@ static const char FILEPATH[] = "Z:/projects/airbud/VTS_03_0.VOB";
  * @brief Parameters for the decoder thread.
  */
 struct decoder_thread_args {
-    SDL_AtomicInt *exit_flag;           /**< 0, 1 whether the thread should stop executing */
+    SDL_AtomicInt *exit_flag;                  /**< 0, 1 whether the thread should stop executing */
 
-    frame_queue *video_queue;           /**< video queue to add frames to */
-    SDL_AudioStream *audio_stream;      /**< audio stream for sound playback */
-    SDL_AtomicU32 *total_audio_samples; /**< total ammount of samples added to the audio queue, used to sync renderer */
+    frame_queue *video_queue;                  /**< video queue to add frames to */
+    SDL_AudioStream *audio_stream;             /**< audio stream for sound playback */
+    SDL_AtomicU32 *total_audio_samples;        /**< total ammount of samples added to the audio queue, used to sync renderer */
 
-    const char *filename;               /**< file to be played back */
+    struct decoder_instructions *instructions; /**< what part of the file should be decoded, also handles swapping conds*/
 };
 
 bool create_decoder_thread(app_state *appstate) {
@@ -201,6 +203,38 @@ static bool setup_file_context(struct media_context *media_ctx) {
     return true;
 }
 
+/**
+ * @brief main decoding loop, segmented for easy early break
+ *
+ * @param args thread args passed through
+ * @param media_ctx file and decodec information
+ * @return true on clean exit, false otherwise
+ */
+static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx)  {
+    //while there is unparsed data left in the file
+    while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
+
+        // if packet is in the audio stream
+        if (media_ctx->packet->stream_index == media_ctx->audio_stream_index) {
+
+            if (!decode_audio(media_ctx->audio_codec_ctx, media_ctx->packet, media_ctx->audio_frame, media_ctx->resample_context,
+                args->audio_stream, args->total_audio_samples))
+            {
+                return false;
+            }
+
+        // FIXME make this conditional on an audio only variable
+        } else if (media_ctx->packet->stream_index == media_ctx->video_stream_index) {
+
+            if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
+                return false;
+            }
+        }
+        av_packet_unref(media_ctx->packet);
+    }
+    return true;
+}
+
 int play_file(void *data) {
     const struct decoder_thread_args *args = (struct decoder_thread_args *) data;
 
@@ -208,57 +242,39 @@ int play_file(void *data) {
     struct media_context media_ctx = {0};
     if (!setup_file_context(&media_ctx)) {
         destroy_media_context(&media_ctx);
+        //FIXME free args?
         return -1;
     }
 
-    while (has direction?) {
-        parse instructions and seek tot he correct point in the file
-        decode loop
+    SDL_LockMutex(args->instructions->mutex);
 
-        if new instructions
+    // while a valid gamestate has been passed
+    while (args->instructions->state) {
 
-        set directions to null potentially?
+        if (!av_seek_frame(media_ctx.format_context, media_ctx.video_stream_index, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD)) {
 
-
-        if (SDL_GetAtomicInt(args->exit_flag)) {
-            //exit flag has triggererd, not an error
-
-            if (there are new instrutions) {
-                set the new instructions
-            } else {
-                break;
-            }
-        } else {
-            break;
-            // a break has occured because of an error
         }
+
+        if (!decode_loop(args, &media_ctx)) {
+            // decoding loop has errored out, not exit flag
+            // TODO break or return negative?
+        }
+
+        // TODO reset all the fun stuff
+
+        // this lifts the mutex lock so the main thread can change the values;
+        SDL_WaitCondition(args->instructions->instruction_available, args->instructions->mutex);
 
     }
 
-    //while there is unparsed data left in the file
-    while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
-
-        if (media_ctx.packet->stream_index == media_ctx.audio_stream_index) {
-
-            if (!decode_audio(media_ctx.audio_codec_ctx, media_ctx.packet, media_ctx.audio_frame, media_ctx.resample_context,
-                args->audio_stream, args->total_audio_samples)) {
-                break;
-            }
-
-        } else if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
-
-            if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
-                break;
-            }
-        }
-
-        av_packet_unref(media_ctx.packet);
-    }
+    //there is no new instructions or there was an errorr
+    //either way clean up????
 
     destroy_media_context(&media_ctx);
-    //TODO is decoder args getting cleaned up?
-    //need to differentiate an error or anterrupt for a new seek pint
     return 0;
 }
+
+    //TODO is decoder args getting cleaned up?
+    //need to differentiate an error or anterrupt for a new seek pint
 
 // TODO in seek function make it trigger an SDL_COND at the end
