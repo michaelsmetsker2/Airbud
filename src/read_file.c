@@ -13,13 +13,12 @@
 #include <read_file.h>
 #include <decode.h>
 #include <frame_queue.h>
+#include "game_states.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/channel_layout.h>
 #include <libavutil/samplefmt.h>
-
-#include "game_states.h"
 
 #define SAMPLE_RATE 48000 // audio sample rate
 
@@ -51,6 +50,7 @@ bool create_decoder_thread(app_state *appstate) {
     args->exit_flag = &appstate->stop_decoder_thread;
     args->video_queue = appstate->render_queue;
     args->total_audio_samples = &appstate->total_audio_samples;
+    args->instructions = appstate->playback_instructions;
 
     //starts decoder thread
     appstate->decoder_thread = SDL_CreateThread(play_file, "decoder", args);
@@ -242,39 +242,41 @@ int play_file(void *data) {
     struct media_context media_ctx = {0};
     if (!setup_file_context(&media_ctx)) {
         destroy_media_context(&media_ctx);
-        //FIXME free args?
+        //FIXME free args and cleanup?
         return -1;
     }
 
+    //main thread should be
     SDL_LockMutex(args->instructions->mutex);
 
     // while a valid gamestate has been passed
     while (args->instructions->state) {
 
-        if (!av_seek_frame(media_ctx.format_context, media_ctx.video_stream_index, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD)) {
-
+        SDL_Log("Playing file...%" PRIu32, args->instructions->state->start_pts);
+        if (av_seek_frame(media_ctx.format_context, media_ctx.video_stream_index, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to seek to the instructed pts\n");
+            break;
         }
+        avcodec_flush_buffers(media_ctx.video_codec_ctx);
+
 
         if (!decode_loop(args, &media_ctx)) {
-            // decoding loop has errored out, not exit flag
-            // TODO break or return negative?
+            // decoding loop has errored out, not exit flag, error should alreay be printed
+            break;
         }
 
         // TODO reset all the fun stuff
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_WaitCondition(args->instructions->instruction_available, args->instructions->mutex);
-
     }
 
-    //there is no new instructions or there was an errorr
-    //either way clean up????
+    SDL_UnlockMutex(args->instructions->mutex);
+
+    //there is no new instructions or there was an error
+    //either way clean up
+    //TODO is decoder args getting cleaned up?
 
     destroy_media_context(&media_ctx);
     return 0;
 }
-
-    //TODO is decoder args getting cleaned up?
-    //need to differentiate an error or anterrupt for a new seek pint
-
-// TODO in seek function make it trigger an SDL_COND at the end

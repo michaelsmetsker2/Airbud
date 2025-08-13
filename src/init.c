@@ -11,6 +11,7 @@
 #include <init.h>
 #include <read_file.h>
 #include <render.h>
+#include <game_states.h>
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 480
@@ -64,7 +65,7 @@ app_state *initialize() {
     return appstate;
 }
 
-bool start_threads(app_state *appstate) {
+bool  start_threads(app_state *appstate) {
 
     //starts sdl audio stream
     appstate->audio_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &format, NULL, NULL);
@@ -75,16 +76,32 @@ bool start_threads(app_state *appstate) {
     SDL_ResumeAudioStreamDevice(appstate->audio_stream);
 
     // Creates thread exit flags and sets them to false
-    SDL_SetAtomicInt(&appstate->stop_render_thread, 0);
     SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
+    SDL_SetAtomicInt(&appstate->stop_render_thread, 0);
 
-    if (!create_render_thread(appstate)) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
+    // creates playback instructions to start decoding at the main menu
+    appstate->playback_instructions = malloc(sizeof(struct decoder_instructions));
+    if (!appstate->playback_instructions) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate playback instructions\n");
+        return false;
+    }
+    //populates playback instructions
+    appstate->playback_instructions->mutex = SDL_CreateMutex();
+    appstate->playback_instructions->instruction_available = SDL_CreateCondition();
+    appstate->playback_instructions->state = &GAME_STATES[MAIN_MENU_1];
+    if (!appstate->playback_instructions->state || !appstate->playback_instructions->instruction_available || !appstate->playback_instructions->mutex) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't populate initial playback instructions\n");
         return false;
     }
 
+    //starts both threads
     if (!create_decoder_thread(appstate)) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initiazlize the decoder thread\n");
+        return false;
+    }
+
+    if (!create_render_thread(appstate)) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
         return false;
     }
 

@@ -14,18 +14,19 @@
 #include <init.h>
 
 /**
- *
+ * TODO
  */
 struct decoder_instructions {
 
-    struct game_state *state;
+    const struct game_state *state;
 
     SDL_Mutex *mutex;
     SDL_Condition *instruction_available;
 };
 
 /**
- * @brief Creates and starts the decoder thread with the correct parameters and starts it off at the beginning of the app
+ * @brief Creates and starts the decoder thread with the correct parameters TODO and starts it off at the beginning of the app?
+ * clean exit is forced by pushing a null gamestate as instructions
  * @param appstate copies references to various variables from appstate into decoder_thread_args
  */
 bool create_decoder_thread(app_state *appstate);
