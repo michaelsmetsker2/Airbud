@@ -252,12 +252,39 @@ int play_file(void *data) {
     // while a valid gamestate has been passed
     while (args->instructions->state) {
 
+        /*
         SDL_Log("Playing file...%" PRIu32, args->instructions->state->start_pts);
-        if (av_seek_frame(media_ctx.format_context, media_ctx.video_stream_index, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD) < 0) {
+        if (av_seek_frame(media_ctx.format_context, -1, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD) < 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to seek to the instructed pts\n");
             break;
         }
-        avcodec_flush_buffers(media_ctx.video_codec_ctx);
+        */
+
+        int64_t seek_target = 2 * AV_TIME_BASE; // 2 seconds
+
+        if (av_seek_frame(media_ctx.format_context, -1, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
+            fprintf(stderr, "Seek failed\n");
+        } else {
+            avcodec_flush_buffers(media_ctx.audio_codec_ctx);
+            avcodec_flush_buffers(media_ctx.video_codec_ctx);
+
+            // discard until we find a keyframe, then decode that keyframe so decoder has refs
+            while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+                if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
+                    if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
+                        // send this keyframe to the decoder so subsequent frames decode cleanly
+                        if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
+                            av_packet_unref(media_ctx.packet);
+                            break; // decode error
+                        }
+                        av_packet_unref(media_ctx.packet);
+                        break; // ready to continue normal decode loop
+                    }
+                }
+                // drop everything else (audio & non-key video) until keyframe
+                av_packet_unref(media_ctx.packet);
+            }
+        }
 
 
         if (!decode_loop(args, &media_ctx)) {
