@@ -286,7 +286,6 @@ int play_file(void *data) {
             }
         }
 
-
         if (!decode_loop(args, &media_ctx)) {
             // decoding loop has errored out, not exit flag, error should alreay be printed
             break;

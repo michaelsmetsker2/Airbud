@@ -9,21 +9,21 @@
 
 #include <SDL3/SDL.h>
 #include <libavutil/frame.h>
+#include <stdint.h>
 
 #include <frame_queue.h>
 #include <render.h>
 #include <init.h>
 
 #define TIMEOUT_DELAY_MS 125
-#define SAMPLE_RATE 48000.0
 #define NUM_CHANNELS 2 // stereo
 #define BYTES_PER_SAMPLE 2 // 16 bit
 
-#define AUDEO_LATENCY_MS 200 //bit confused on this one, seems to line up good though
-#define LAG_TOLERANCE_MS 20.0 // one small amount of time behind shouldn't drop the frame
+#define SAMPLES_TO_MS  (1000.0 / 48000) //sample rate is 48000 / second
+#define PTS_TO_MS      (1000.0 / 90000.0) // time base is 1 / 90000
 
-//Time base of the media format context, hardcoded as only this dvd is needed
-static const AVRational time_base = {1, 90000};
+#define AUDEO_LATENCY_MS 200 //hardware latency, 200ms seems to be good, can be adjusted if needed
+#define LAG_TOLERANCE_MS 20.0 // won't drop a frame in only a small amount behind
 
 bool create_render_thread(app_state *appstate) {
 
@@ -58,7 +58,7 @@ bool create_render_thread(app_state *appstate) {
  * @return true on success, false otherwise
  */
 static bool render_loop(const struct render_thread_args *args) {
-    /* waits for mutex */
+    /* waits for queue mutex */
     SDL_LockMutex(args->queue->mutex);
 
     if (args->queue->size == 0) {
@@ -71,38 +71,38 @@ static bool render_loop(const struct render_thread_args *args) {
 
     AVFrame *current_frame = dequeue_frame(args->queue);
     SDL_UnlockMutex(args->queue->mutex);
-
     if (!current_frame) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "error dequeueing frame");
         return false;
     }
 
-    // sync playback time to the audio
-    const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (NUM_CHANNELS * BYTES_PER_SAMPLE);
-    const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
+    { // syncing audio and video
+        const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (NUM_CHANNELS * BYTES_PER_SAMPLE);
+        const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
-    // Seconds to MS devided by sample rate plus the hardware delay
-    const double played_ms = played_audio_samples * 1000.0 / SAMPLE_RATE + AUDEO_LATENCY_MS;
+        // timestamps of current audio and video frames in ms
+        const double audio_time_ms = played_audio_samples * SAMPLES_TO_MS + AUDEO_LATENCY_MS;
+        const double video_time_ms = (double)current_frame->best_effort_timestamp * PTS_TO_MS;
 
-    const double pts_ms = (double)current_frame->best_effort_timestamp * av_q2d(time_base) * 1000.0;
+        if (video_time_ms > audio_time_ms ) {
+            // delay until audio catches up
+            SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
+        } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
+            SDL_Log("dropping frame");
+            av_frame_free(&current_frame);
+            return true;
+        }
 
-    if (pts_ms > played_ms) {
-        const double delay_ms = pts_ms - played_ms;
-        SDL_Delay((uint32_t)delay_ms);
-    } else if (played_ms - pts_ms > LAG_TOLERANCE_MS) {
-        SDL_Log("dropping frame");
-        av_frame_free(&current_frame);
-        return true;
-    }
+        //FIXME remove debugging lines
+        printf("played: %f" "\n", audio_time_ms);
+        printf("pts   : %f" "\n", video_time_ms);
+    } // syncing audio and video
 
     // render the frame
     SDL_UpdateYUVTexture(args->texture, NULL,
         current_frame->data[0], current_frame->linesize[0],   // Y plane
         current_frame->data[1], current_frame->linesize[1],   // U plane
         current_frame->data[2], current_frame->linesize[2]);  // V plane
-
-    printf("played: %f" "\n", played_ms);
-    printf("pts   : %f" "\n", pts_ms);
 
     SDL_RenderClear(args->renderer);
     SDL_RenderTexture(args->renderer, args->texture, NULL, NULL);  // whole texture to window
@@ -121,13 +121,7 @@ int render_frames(void *data) {
         render_loop(args);
     }
 
-    //if endpoint reached
-    //clear queue
-    //signal?? cond maybe
-    //wait for signal to resume
+    //TODO cleanup?
 
     return true;
-
 }
-
-
