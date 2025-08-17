@@ -14,26 +14,8 @@
 #include <stdbool.h>
 
 /**
- * @struct render_thread_args
- * @brief Struct containing nesesary information for the render thread
- * although these are just a subset of appstate, this allows for more encapsulization
- */
-struct render_thread_args {
-    SDL_AtomicInt *exit_flag;           /**< exit flag for safe quick exit */
-
-    SDL_Window *window;                 /**< main window for the app */
-    SDL_Renderer *renderer;             /**< main renderer for the app */
-    SDL_Texture *texture;               /**< reused texture to avoid repeate declarations and memory churn */
-
-    frame_queue *queue;                 /**< queue of avframes to render */
-    SDL_AtomicU32 *total_audio_samples; /**< total amount of audio samples pushed to the audio queue, used for syncing */
-    SDL_AtomicU32 *audio_offset_ms;     /**< audio offset for starting midway through a file */
-    SDL_AudioStream *audio_stream;      /**< audio stream where audio packets are queued */
-
-};
-
-/**
- * @brief creates render thread with the correct parameters
+ * @brief creates render thread and starts it off with the correct parameters
+ * this populates the passed appstates, render_thread, and stop_render_thread members
  * @return true on success, false otherwise
  */
 bool create_render_thread(app_state *appstate);

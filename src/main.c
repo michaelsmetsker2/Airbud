@@ -13,7 +13,7 @@
 #include <init.h>
 
 /* runs on startup */
-SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage or sumthin? play me twerkin
+SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage
 
     *appstate = initialize();
     if (*appstate == NULL) {

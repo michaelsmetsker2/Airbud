@@ -15,6 +15,8 @@
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 
+#include "game_states.h"
+
 /**
  * @struct app_state
  * @brief Struct for carrying basic info to all parts of the SDL program
@@ -29,15 +31,16 @@ typedef struct app_state {
 
     frame_queue                 *render_queue;          /**< render queue of buffered video frames */
 
-    SDL_Thread                  *render_thread;         /**> Thread that handles rendering */
-    SDL_AtomicInt                stop_render_thread;    /**> The exit flag for the render thread */
+    SDL_Thread                  *render_thread;         /**< thread that handles rendering */
+    SDL_AtomicInt                stop_render_thread;    /**< the exit flag for the render thread, 1 to break main loop, -1 for hard exit */
 
     SDL_Thread                  *decoder_thread;        /**< pointer to the thread that handles decoding */
-    SDL_AtomicInt                stop_decoder_thread;   /**< The exit flag for the decoding thread */
+    SDL_AtomicInt                stop_decoder_thread;   /**< the exit flag for the decoder thread, 1 to break main loop, -1 for hard exit */
 
-    void                        *gamestate;             /**< atomic pointer to gamestate, THIS SHOULD ONLY BE CHANGED BY THE MAIN THREAD AND BY THE FIXME FUNCTION */
-    struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */ //FIXME this will need to change now
+    const struct game_state     *current_game_state;    /**< current state of the game, containing playback isntructions and buttons */
+    SDL_Mutex                   *state_mutex;           /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
 
+    struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */
 } app_state;
 
 /**

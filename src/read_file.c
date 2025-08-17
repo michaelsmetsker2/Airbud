@@ -13,7 +13,6 @@
 #include <read_file.h>
 #include <decode.h>
 #include <frame_queue.h>
-#include "game_states.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -29,7 +28,7 @@ static const char FILEPATH[] = "Z:/projects/airbud/VTS_03_0.VOB";
  * @brief Parameters for the decoder thread.
  */
 struct decoder_thread_args {
-    SDL_AtomicInt *exit_flag;                  /**< 0, 1 whether the thread should stop executing */
+    SDL_AtomicInt *exit_flag;                  /**< 0, for continuing, 1 for soft exit decoding lool, -1 for hard exit */
 
     frame_queue *video_queue;                  /**< video queue to add frames to */
     SDL_AudioStream *audio_stream;             /**< audio stream for sound playback */
@@ -39,6 +38,25 @@ struct decoder_thread_args {
 };
 
 bool create_decoder_thread(app_state *appstate) {
+
+    SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
+
+    // creates playback instructions to start decoding at the main menu
+    appstate->playback_instructions = malloc(sizeof(struct decoder_instructions));
+    if (!appstate->playback_instructions) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate playback instructions\n");
+        return false;
+    }
+    //populates playback instructions
+    appstate->playback_instructions->start_point_ms = appstate->current_game_state->start_pts;
+    appstate->playback_instructions->audio_only = appstate->current_game_state->audio_only;
+
+    appstate->playback_instructions->mutex = SDL_CreateMutex();
+    appstate->playback_instructions->instruction_available = SDL_CreateCondition();
+    if (!appstate->playback_instructions->instruction_available || !appstate->playback_instructions->mutex) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't populate initial playback instructions\n");
+        return false;
+    }
 
     // creates and populates args
     struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
@@ -100,7 +118,7 @@ static void destroy_media_context(struct media_context *ctx) {
  * Initializes the media context by opening the input file and preparing
  * the codec, format context, and frame/packet allocations for video decoding
  *
- * TODO hardcode a bunch of these valuse as im only using one file
+ * TODO hardcode a bunch of these valuse as im only ever using one file
  *
  * @param media_ctx Pointer to the media context to initialize
  * @return true on success, false on failure. On failure, no cleanup is performed.
@@ -226,7 +244,7 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
         } else if (media_ctx->packet->stream_index == media_ctx->video_stream_index) {
             // packet is in video stream
 
-            if (!args->instructions->state->audio_only) {
+            if (!args->instructions->audio_only) {
 
                 if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
                     return false;
@@ -256,9 +274,9 @@ int play_file(void *data) {
     SDL_LockMutex(args->instructions->mutex);
 
     // while a valid gamestate has been passed
-    while (args->instructions->state) {
+    while (SDL_GetAtomicInt(args->exit_flag) == -1) {
 
-        //reset exit flag????
+        SDL_SetAtomicInt(args->exit_flag, 0);
 
         /* //TODO find out if this is nessesary? this is potentially redundant if unreadable frames are still keyframes for audio only sections
         if (args->instructions->state->audio_only) {
@@ -268,7 +286,8 @@ int play_file(void *data) {
         }
         */
 
-        const int64_t seek_target = args->instructions->state->start_pts * AV_TIME_BASE;
+        //FIXME make a dedicated seeking function
+        const int64_t seek_target = args->instructions->start_point_ms / 1000.0 * AV_TIME_BASE;
 
         if (av_seek_frame(media_ctx.format_context, -1, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't seek frame\n");
@@ -279,7 +298,7 @@ int play_file(void *data) {
         avcodec_flush_buffers(media_ctx.video_codec_ctx);
 
         // discard until we find a video keyframe, then decode that keyframe so decoder has refs
-        while (!args->exit_flag || av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+        while (!SDL_GetAtomicInt(args->exit_flag) || av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
             if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
                 if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
@@ -296,6 +315,7 @@ int play_file(void *data) {
             av_packet_unref(media_ctx.packet);
         }
 
+        //TODO change error breaks to set exit flag to -1 and set what to do on end of file?
         if (!decode_loop(args, &media_ctx)) {
             // decoding loop has errored out, not exit flag, error should alreay be printed
             break;

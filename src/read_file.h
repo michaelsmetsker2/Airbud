@@ -12,22 +12,31 @@
 #define READ_FILE_H
 
 #include <init.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
- * TODO
+ * @struct decoder_instructions
+ * @brief contains mutex controlled variables that change when the gamestate us updated.
+ * these are subsets of teh game_state struct and should only be changed from the main thread when changing gamestate
  */
 struct decoder_instructions {
 
-    const void *state; //atomic pointer
+    bool audio_only;                        /**< whether the next section only needs decoded audio */
+    uint32_t start_point_ms;                /**< the point in the file to start decoding from */
 
-    SDL_Mutex *mutex;
-    SDL_Condition *instruction_available;
+    SDL_Mutex *mutex;                       /**< mutex will be held by decoder until its exit flag is triggered */
+    SDL_Condition *instruction_available;   /**< wait condition while instructions are being updated */
 };
+
+// TODO make function to cleanup decoder_instructions
 
 /**
  * @brief Creates and starts the decoder thread with the correct parameters TODO and starts it off at the beginning of the app?
- * clean exit is forced by pushing a null gamestate as instructions
+ * this populates the passed appstates struct's playback instructions, decoder thread, and stop_decoder_thread members
+ * clean exit is forced by setting the stop decoder thread flag to -1
  * @param appstate copies references to various variables from appstate into decoder_thread_args
+ * @return true on success false otherwise
  */
 bool create_decoder_thread(app_state *appstate);
 // TODO do i have a way to clean up args?

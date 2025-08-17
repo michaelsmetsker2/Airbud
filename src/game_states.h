@@ -15,25 +15,28 @@
 
 #define STATE_COUNT 4
 
-/**
- * TODO
- *
- *
- */
-struct game_state {
-    const uint32_t start_pts;
-    const uint32_t end_pts;
-    const bool audio_only;
-
-    //TODO string of buttons
-};
-
 typedef enum STATE_ID {
     MAIN_MENU_1,
     MAIN_MENU_2,
     MAIN_MENU_3,
     TUTORIAL
 } STATE_ID;
+
+/**
+ * TODO
+ *
+ *
+ */
+struct game_state {
+    const STATE_ID id;
+    const uint32_t start_pts;
+    const uint32_t end_pts;
+    const bool audio_only;
+
+    //TODO state id as well? or use a map?
+    //TODO string of buttons
+    //TODO potentially references to logic functions? of this stuff?
+};
 
 extern const struct game_state GAME_STATES[STATE_COUNT];
 

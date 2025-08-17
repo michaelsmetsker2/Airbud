@@ -88,7 +88,6 @@ AVFrame *dequeue_frame(frame_queue *queue) {
     return frame;
 }
 
-//TODO this is legacy, make sure it is all kosher
 void destroy_frameQueue(frame_queue *queue) {
     if (!queue) return;
 

@@ -45,7 +45,7 @@ app_state *initialize() {
         return NULL;
     }
 
-    // Creates reused frame_queue for the app
+    // frame_queue for the app
     appstate->render_queue = create_frame_queue();
     if (!appstate->render_queue) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate video frame_queue\n");
@@ -62,7 +62,13 @@ app_state *initialize() {
     // sets total_audio_samples to 0
     SDL_SetAtomicU32(&appstate->total_audio_samples, 0);
     //set initial gamestate to the main menu
-    SDL_SetAtomicPointer(&appstate->gamestate, (void*)&GAME_STATES[MAIN_MENU_1]);
+
+    appstate->current_game_state = &GAME_STATES[MAIN_MENU_1];
+    appstate->state_mutex = SDL_CreateMutex();
+    if (!appstate->state_mutex) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create mutex\n");
+        return NULL;
+    }
 
     return appstate;
 }
@@ -76,26 +82,6 @@ bool  start_threads(app_state *appstate) {
         return false;
     }
     SDL_ResumeAudioStreamDevice(appstate->audio_stream);
-
-    // Creates thread exit flags and sets them to false
-    SDL_SetAtomicInt(&appstate->stop_decoder_thread, 0);
-    SDL_SetAtomicInt(&appstate->stop_render_thread, 0);
-
-    // creates playback instructions to start decoding at the main menu
-    appstate->playback_instructions = malloc(sizeof(struct decoder_instructions));
-    if (!appstate->playback_instructions) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate playback instructions\n");
-        return false;
-    }
-    //populates playback instructions
-    appstate->playback_instructions->state = appstate->gamestate;
-
-    appstate->playback_instructions->mutex = SDL_CreateMutex();
-    appstate->playback_instructions->instruction_available = SDL_CreateCondition();
-    if (!appstate->playback_instructions->instruction_available || !appstate->playback_instructions->mutex) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't populate initial playback instructions\n");
-        return false;
-    }
 
     //starts both threads
     if (!create_decoder_thread(appstate)) {
