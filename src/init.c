@@ -54,13 +54,15 @@ app_state *initialize() {
 
     //creates reused texture for rendering
     appstate->base_texture = SDL_CreateTexture(appstate->renderer,
-    SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
-    SDL_TEXTUREACCESS_STREAMING,
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT);
+        SDL_PIXELFORMAT_IYUV,   // Equivalent to YUV420 planar
+        SDL_TEXTUREACCESS_STREAMING,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT);
 
     // sets total_audio_samples to 0
     SDL_SetAtomicU32(&appstate->total_audio_samples, 0);
+    //set initial gamestate to the main menu
+    SDL_SetAtomicPointer(&appstate->gamestate, (void*)&GAME_STATES[MAIN_MENU_1]);
 
     return appstate;
 }
@@ -86,10 +88,11 @@ bool  start_threads(app_state *appstate) {
         return false;
     }
     //populates playback instructions
+    appstate->playback_instructions->state = appstate->gamestate;
+
     appstate->playback_instructions->mutex = SDL_CreateMutex();
     appstate->playback_instructions->instruction_available = SDL_CreateCondition();
-    appstate->playback_instructions->state = &GAME_STATES[MAIN_MENU_1];
-    if (!appstate->playback_instructions->state || !appstate->playback_instructions->instruction_available || !appstate->playback_instructions->mutex) {
+    if (!appstate->playback_instructions->instruction_available || !appstate->playback_instructions->mutex) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't populate initial playback instructions\n");
         return false;
     }

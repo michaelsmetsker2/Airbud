@@ -18,7 +18,7 @@
  */
 struct decoder_instructions {
 
-    const struct game_state *state;
+    const void *state; //atomic pointer
 
     SDL_Mutex *mutex;
     SDL_Condition *instruction_available;

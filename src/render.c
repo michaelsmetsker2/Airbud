@@ -81,7 +81,7 @@ static bool render_loop(const struct render_thread_args *args) {
         const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
         // timestamps of current audio and video frames in ms
-        const double audio_time_ms = played_audio_samples * SAMPLES_TO_MS + AUDEO_LATENCY_MS;
+        const double audio_time_ms = played_audio_samples * SAMPLES_TO_MS + AUDEO_LATENCY_MS + offset_ms;
         const double video_time_ms = (double)current_frame->best_effort_timestamp * PTS_TO_MS;
 
         if (video_time_ms > audio_time_ms ) {

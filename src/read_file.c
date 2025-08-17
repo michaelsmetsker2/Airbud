@@ -211,11 +211,11 @@ static bool setup_file_context(struct media_context *media_ctx) {
  * @return true on clean exit, false otherwise
  */
 static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx)  {
-    //while there is unparsed data left in the file
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
+        //while there is unparsed data left in the file
 
-        // if packet is in the audio stream
         if (media_ctx->packet->stream_index == media_ctx->audio_stream_index) {
+            // if packet is in the audio stream
 
             if (!decode_audio(media_ctx->audio_codec_ctx, media_ctx->packet, media_ctx->audio_frame, media_ctx->resample_context,
                 args->audio_stream, args->total_audio_samples))
@@ -223,12 +223,18 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
                 return false;
             }
 
-        // FIXME make this conditional on an audio only variable
         } else if (media_ctx->packet->stream_index == media_ctx->video_stream_index) {
+            // packet is in video stream
 
-            if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
-                return false;
+            if (!args->instructions->state->audio_only) {
+
+                if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
+                    return false;
+                }
+            } else {
+                av_packet_unref(media_ctx->packet); //not sure if this is correct
             }
+
         }
         av_packet_unref(media_ctx->packet);
     }
@@ -252,38 +258,42 @@ int play_file(void *data) {
     // while a valid gamestate has been passed
     while (args->instructions->state) {
 
-        /*
-        SDL_Log("Playing file...%" PRIu32, args->instructions->state->start_pts);
-        if (av_seek_frame(media_ctx.format_context, -1, args->instructions->state->start_pts, AVSEEK_FLAG_BACKWARD) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to seek to the instructed pts\n");
-            break;
+        //reset exit flag????
+
+        /* //TODO find out if this is nessesary? this is potentially redundant if unreadable frames are still keyframes for audio only sections
+        if (args->instructions->state->audio_only) {
+            //seek to video
+        } else {
+            //seek to audio?
         }
         */
 
-        int64_t seek_target = 2 * AV_TIME_BASE; // 2 seconds
+        const int64_t seek_target = args->instructions->state->start_pts * AV_TIME_BASE;
 
         if (av_seek_frame(media_ctx.format_context, -1, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
-            fprintf(stderr, "Seek failed\n");
-        } else {
-            avcodec_flush_buffers(media_ctx.audio_codec_ctx);
-            avcodec_flush_buffers(media_ctx.video_codec_ctx);
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't seek frame\n");
+            break;
+        }
 
-            // discard until we find a keyframe, then decode that keyframe so decoder has refs
-            while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
-                if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
-                    if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
-                        // send this keyframe to the decoder so subsequent frames decode cleanly
-                        if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
-                            av_packet_unref(media_ctx.packet);
-                            break; // decode error
-                        }
+        avcodec_flush_buffers(media_ctx.audio_codec_ctx);
+        avcodec_flush_buffers(media_ctx.video_codec_ctx);
+
+        // discard until we find a video keyframe, then decode that keyframe so decoder has refs
+        while (!args->exit_flag || av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+
+            if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
+                if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
+                    // send this keyframe to the decoder so subsequent frames decode cleanly
+                    if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
                         av_packet_unref(media_ctx.packet);
-                        break; // ready to continue normal decode loop
+                        break; // decode error
                     }
+                    av_packet_unref(media_ctx.packet);
+                    break; // ready to continue normal decode loop
                 }
-                // drop everything else (audio & non-key video) until keyframe
-                av_packet_unref(media_ctx.packet);
             }
+            // drop everything else (audio & non-key video) until keyframe
+            av_packet_unref(media_ctx.packet);
         }
 
         if (!decode_loop(args, &media_ctx)) {

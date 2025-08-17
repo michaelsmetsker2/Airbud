@@ -20,22 +20,23 @@
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
 typedef struct app_state {
-    SDL_Window                  *window;               /**< main Window for the program */
-    SDL_Renderer                *renderer;             /**< main Renderer for the program */
-    SDL_Texture                 *base_texture;         /**< Reused texture for main video playback */
+    SDL_Window                  *window;                /**< main Window for the program */
+    SDL_Renderer                *renderer;              /**< main Renderer for the program */
+    SDL_Texture                 *base_texture;          /**< Reused texture for main video playback */
 
-    SDL_AudioStream             *audio_stream;         /**< audio stream for sound playback */
-    SDL_AtomicU32                total_audio_samples;  /**< total amount of packets of audio enqueued, used for syncing renderer */
+    SDL_AudioStream             *audio_stream;          /**< audio stream for sound playback */
+    SDL_AtomicU32                total_audio_samples;   /**< total amount of packets of audio enqueued, used for syncing renderer */
 
-    frame_queue                 *render_queue;         /**< render queue of buffered video frames */
+    frame_queue                 *render_queue;          /**< render queue of buffered video frames */
 
-    SDL_Thread                  *render_thread;        /**> Thread that handles rendering */
-    SDL_AtomicInt                stop_render_thread;   /**> The exit flag for the render thread */
+    SDL_Thread                  *render_thread;         /**> Thread that handles rendering */
+    SDL_AtomicInt                stop_render_thread;    /**> The exit flag for the render thread */
 
-    SDL_Thread                  *decoder_thread;       /**< pointer to the thread that handles decoding */
-    SDL_AtomicInt                stop_decoder_thread;  /**< The exit flag for the decoding thread */
+    SDL_Thread                  *decoder_thread;        /**< pointer to the thread that handles decoding */
+    SDL_AtomicInt                stop_decoder_thread;   /**< The exit flag for the decoding thread */
 
-    struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file do decodeand mutex signals */
+    void                        *gamestate;             /**< atomic pointer to gamestate, THIS SHOULD ONLY BE CHANGED BY THE MAIN THREAD AND BY THE FIXME FUNCTION */
+    struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */ //FIXME this will need to change now
 
 } app_state;
 

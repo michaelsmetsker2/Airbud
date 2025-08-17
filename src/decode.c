@@ -16,7 +16,6 @@
 #include <decode.h>
 #include <frame_queue.h>
 
-
 static const Sint32 TIMEOUT_DELAY_MS = 400;
 
 static const int SAMPLE_RATE = 48000;

@@ -27,7 +27,9 @@ struct render_thread_args {
 
     frame_queue *queue;                 /**< queue of avframes to render */
     SDL_AtomicU32 *total_audio_samples; /**< total amount of audio samples pushed to the audio queue, used for syncing */
+    SDL_AtomicU32 *audio_offset_ms;     /**< audio offset for starting midway through a file */
     SDL_AudioStream *audio_stream;      /**< audio stream where audio packets are queued */
+
 };
 
 /**
