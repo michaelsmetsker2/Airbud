@@ -112,8 +112,10 @@ static bool render_loop(const struct render_thread_args *args) {
         if (video_time_ms > audio_time_ms ) {
             // delay until audio catches up
             // TODO warning when the wait is an obscene amount of time
-            Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%l" PRId32, delay);
+            const Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
+            if (delay > 100) {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%l" PRId32, delay); //FIXME
+            }
             SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
         } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
             SDL_Log("dropping frame");

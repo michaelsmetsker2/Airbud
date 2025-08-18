@@ -274,7 +274,7 @@ int play_file(void *data) {
     SDL_LockMutex(args->instructions->mutex);
 
     // while a valid gamestate has been passed
-    while (SDL_GetAtomicInt(args->exit_flag) == -1) {
+    while (SDL_GetAtomicInt(args->exit_flag) != -1 ) {
 
         SDL_SetAtomicInt(args->exit_flag, 0);
 
@@ -298,7 +298,7 @@ int play_file(void *data) {
         avcodec_flush_buffers(media_ctx.video_codec_ctx);
 
         // discard until we find a video keyframe, then decode that keyframe so decoder has refs
-        while (!SDL_GetAtomicInt(args->exit_flag) || av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
+        while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
 
             if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
                 if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
@@ -315,6 +315,7 @@ int play_file(void *data) {
             av_packet_unref(media_ctx.packet);
         }
 
+
         //TODO change error breaks to set exit flag to -1 and set what to do on end of file?
         if (!decode_loop(args, &media_ctx)) {
             // decoding loop has errored out, not exit flag, error should alreay be printed
@@ -326,6 +327,7 @@ int play_file(void *data) {
         // this lifts the mutex lock so the main thread can change the values;
         SDL_WaitCondition(args->instructions->instruction_available, args->instructions->mutex);
     }
+
 
     SDL_UnlockMutex(args->instructions->mutex);
 

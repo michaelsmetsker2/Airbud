@@ -11,7 +11,7 @@
 const struct game_state GAME_STATES[4] = {
     [MAIN_MENU_1] = {
         .id = MAIN_MENU_1, //FIXME potentially redundant?
-        .start_pts = 2,
+        .start_pts = 000,
         .end_pts = 20000,
         .audio_only = false,
         // .buttons = main_menu_buttons
