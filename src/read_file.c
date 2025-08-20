@@ -21,6 +21,9 @@
 
 #define SAMPLE_RATE 48000 // audio sample rate
 
+#define VIDEO_STREAM_INDEX 1
+#define AUDIO_STREAM_INDEX 3
+
 static const char FILEPATH[] = "Z:/projects/airbud/VTS_03_0.VOB";
 
 /**
@@ -48,7 +51,7 @@ bool create_decoder_thread(app_state *appstate) {
         return false;
     }
     //populates playback instructions
-    appstate->playback_instructions->start_point_ms = appstate->current_game_state->start_pts;
+    appstate->playback_instructions->chunk_offset = appstate->current_game_state->chunk_offset;
     appstate->playback_instructions->audio_only = appstate->current_game_state->audio_only;
 
     appstate->playback_instructions->mutex = SDL_CreateMutex();
@@ -91,11 +94,9 @@ struct media_context {
     AVPacket        *packet;                 /**< packet of decoded data of any stream */
 
     AVCodecContext  *video_codec_ctx;        /**< decodec for decoding the video stream */
-    int              video_stream_index;     /**< index of the video stream to be decoded */
     AVFrame         *video_frame;            /**< reused video frame, its data is copied to a queue */
 
     AVCodecContext  *audio_codec_ctx;        /**< decodec for decoding the audio stream */
-    int              audio_stream_index;     /**< index of the audio stream to be decoded */
     AVFrame         *audio_frame;            /**< reused audio frame, its data is copied to a queue */
     SwrContext      *resample_context;       /**< software resampler to make audio usable in SDL3 */
 };
@@ -118,7 +119,7 @@ static void destroy_media_context(struct media_context *ctx) {
  * Initializes the media context by opening the input file and preparing
  * the codec, format context, and frame/packet allocations for video decoding
  *
- * TODO hardcode a bunch of these valuse as im only ever using one file
+ * //TODO hardcode decodecs
  *
  * @param media_ctx Pointer to the media context to initialize
  * @return true on success, false on failure. On failure, no cleanup is performed.
@@ -136,18 +137,14 @@ static bool setup_file_context(struct media_context *media_ctx) {
         return false;
     }
 
-    /* Finds best video codec and stream */
-    const AVCodec *video_codec = NULL;
-    media_ctx->video_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_VIDEO, -1, -1, &video_codec, 0);
-    if (media_ctx->video_stream_index < 0 || !video_codec) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best video stream or decoder \n");
-        return false;
-    }
-    /* Finds best audio codec and stream */
-    const AVCodec *audio_codec = NULL;
-    media_ctx->audio_stream_index = av_find_best_stream(media_ctx->format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &audio_codec, 0);
-    if (media_ctx->audio_stream_index < 0 || !audio_codec) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find best audio stream or decoder \n");
+    const AVCodecParameters *video_codec_par = media_ctx->format_context->streams[VIDEO_STREAM_INDEX]->codecpar;
+    const AVCodecParameters *audio_codec_par = media_ctx->format_context->streams[AUDIO_STREAM_INDEX]->codecpar;
+
+    //finds correct decodecs
+    const AVCodec *video_codec = avcodec_find_decoder(video_codec_par->codec_id);
+    const AVCodec *audio_codec = avcodec_find_decoder(audio_codec_par->codec_id);
+    if (!video_codec || !audio_codec) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't find decoder\n");
         return false;
     }
 
@@ -163,17 +160,14 @@ static bool setup_file_context(struct media_context *media_ctx) {
         return false;
     }
 
-    { //variable declarations are just for readability
-        const AVCodecParameters *video_codec_parameters = media_ctx->format_context->streams[media_ctx->video_stream_index]->codecpar;
-        if (avcodec_parameters_to_context(media_ctx->video_codec_ctx, video_codec_parameters) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy codec parameters\n");
-            return false;
-        }
-        const AVCodecParameters *audio_codec_parameters = media_ctx->format_context->streams[media_ctx->audio_stream_index]->codecpar;
-        if (avcodec_parameters_to_context(media_ctx->audio_codec_ctx, audio_codec_parameters) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy audio codec parameters\n");
-            return false;
-        }
+    // populates codec information
+    if (avcodec_parameters_to_context(media_ctx->video_codec_ctx, video_codec_par) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy codec parameters\n");
+        return false;
+    }
+    if (avcodec_parameters_to_context(media_ctx->audio_codec_ctx, audio_codec_par) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't copy audio codec parameters\n");
+        return false;
     }
 
     // Opens decoders
@@ -198,13 +192,13 @@ static bool setup_file_context(struct media_context *media_ctx) {
         0, NULL
         ) < 0)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't initizalize resampler\n");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate resampler\n");
         return false;
     }
 
     // Initialize resampler
     if (swr_init(media_ctx->resample_context) < 0) {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't initialize resampler (swr_init failed)\n");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't initialize resampler\n");
         swr_free(&media_ctx->resample_context);
         return false;
     }
@@ -232,7 +226,7 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
         //while there is unparsed data left in the file
 
-        if (media_ctx->packet->stream_index == media_ctx->audio_stream_index) {
+        if (media_ctx->packet->stream_index == AUDIO_STREAM_INDEX) {
             // if packet is in the audio stream
 
             if (!decode_audio(media_ctx->audio_codec_ctx, media_ctx->packet, media_ctx->audio_frame, media_ctx->resample_context,
@@ -241,18 +235,16 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
                 return false;
             }
 
-        } else if (media_ctx->packet->stream_index == media_ctx->video_stream_index) {
+        } else if (media_ctx->packet->stream_index == VIDEO_STREAM_INDEX) {
             // packet is in video stream
 
-            if (!args->instructions->audio_only) {
-
+            if (args->instructions->audio_only) {
+                av_packet_unref(media_ctx->packet); // TODO make sure this is propper, may leak do to some caching bs
+            } else {
                 if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
                     return false;
                 }
-            } else {
-                av_packet_unref(media_ctx->packet); //not sure if this is correct
             }
-
         }
         av_packet_unref(media_ctx->packet);
     }
@@ -278,18 +270,10 @@ int play_file(void *data) {
 
         SDL_SetAtomicInt(args->exit_flag, 0);
 
-        /* //TODO find out if this is nessesary? this is potentially redundant if unreadable frames are still keyframes for audio only sections
-        if (args->instructions->state->audio_only) {
-            //seek to video
-        } else {
-            //seek to audio?
-        }
-        */
+        //FIXME define chunk size or just have byte offset hardcoded
+        const int64_t byte_offset = (int64_t)args->instructions->chunk_offset * 2048;
 
-        //FIXME make a dedicated seeking function
-        const int64_t seek_target = args->instructions->start_point_ms / 1000.0 * AV_TIME_BASE;
-
-        if (av_seek_frame(media_ctx.format_context, -1, seek_target, AVSEEK_FLAG_BACKWARD) < 0) {
+        if (av_seek_frame(media_ctx.format_context, -1, byte_offset, AVSEEK_FLAG_BYTE) < 0) {
             SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't seek frame\n");
             break;
         }
@@ -297,32 +281,13 @@ int play_file(void *data) {
         avcodec_flush_buffers(media_ctx.audio_codec_ctx);
         avcodec_flush_buffers(media_ctx.video_codec_ctx);
 
-        // discard until we find a video keyframe, then decode that keyframe so decoder has refs
-        while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx.format_context, media_ctx.packet) >= 0) {
-
-            if (media_ctx.packet->stream_index == media_ctx.video_stream_index) {
-                if (media_ctx.packet->flags & AV_PKT_FLAG_KEY) {
-                    // send this keyframe to the decoder so subsequent frames decode cleanly
-                    if (!decode_video(media_ctx.video_codec_ctx, media_ctx.packet, media_ctx.video_frame, args->video_queue)) {
-                        av_packet_unref(media_ctx.packet);
-                        break; // decode error
-                    }
-                    av_packet_unref(media_ctx.packet);
-                    break; // ready to continue normal decode loop
-                }
-            }
-            // drop everything else (audio & non-key video) until keyframe
-            av_packet_unref(media_ctx.packet);
-        }
-
-
         //TODO change error breaks to set exit flag to -1 and set what to do on end of file?
         if (!decode_loop(args, &media_ctx)) {
             // decoding loop has errored out, not exit flag, error should alreay be printed
             break;
         }
 
-        // TODO reset all the fun stuff
+        // TODO reset all the fun stuff?
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_WaitCondition(args->instructions->instruction_available, args->instructions->mutex);

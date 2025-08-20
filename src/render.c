@@ -42,7 +42,7 @@ struct render_thread_args {
     SDL_AudioStream *audio_stream;        /**< audio stream where audio packets are queued */
 
     const struct game_state **game_state; /**< pointer to the pointer to the current game state, not to be changed from this thread */
-    SDL_Mutex *state_mutex;                     /**< mutex to keep the main thread from changing teh game state mid render cycle */
+    SDL_Mutex *state_mutex;               /**< mutex to keep the main thread from changing teh game state mid render cycle */
 };
 
 bool create_render_thread(app_state *appstate) {
@@ -100,13 +100,13 @@ static bool render_loop(const struct render_thread_args *args) {
         return false;
     }
 
-    { // syncing audio and video
-
+    // sync audio and video
+    {
         const uint32_t queued_samples = SDL_GetAudioStreamQueued(args->audio_stream) / (NUM_CHANNELS * BYTES_PER_SAMPLE);
         const uint32_t played_audio_samples = SDL_GetAtomicU32(args->total_audio_samples) - queued_samples;
 
         // timestamps of current audio and video frames in ms
-        const double audio_time_ms = played_audio_samples * SAMPLES_TO_MS + AUDEO_LATENCY_MS + (*args->game_state)->start_pts;
+        const double audio_time_ms = played_audio_samples * SAMPLES_TO_MS + AUDEO_LATENCY_MS;
         const double video_time_ms = (double)current_frame->best_effort_timestamp * PTS_TO_MS;
 
         if (video_time_ms > audio_time_ms ) {
@@ -114,7 +114,7 @@ static bool render_loop(const struct render_thread_args *args) {
             // TODO warning when the wait is an obscene amount of time
             const Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
             if (delay > 100) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%l" PRId32, delay); //FIXME
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "big ol delay of %l" PRId32, delay); //FIXME
             }
             SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
         } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
@@ -126,7 +126,7 @@ static bool render_loop(const struct render_thread_args *args) {
         //FIXME remove debugging lines
         printf("played: %f" "\n", audio_time_ms);
         printf("pts   : %f" "\n", video_time_ms);
-    } // syncing audio and video
+    }
 
     // render the frame
     SDL_UpdateYUVTexture(args->texture, NULL,

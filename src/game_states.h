@@ -29,11 +29,10 @@ typedef enum STATE_ID {
  */
 struct game_state {
     const STATE_ID id;
-    const uint32_t start_pts;
+    const uint32_t chunk_offset;
     const uint32_t end_pts;
     const bool audio_only;
 
-    //TODO state id as well? or use a map?
     //TODO string of buttons
     //TODO potentially references to logic functions? of this stuff?
 };
