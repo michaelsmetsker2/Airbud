@@ -42,7 +42,7 @@ struct render_thread_args {
     SDL_AudioStream *audio_stream;        /**< audio stream where audio packets are queued */
 
     const struct game_state **game_state; /**< pointer to the pointer to the current game state, not to be changed from this thread */
-    SDL_Mutex *state_mutex;               /**< mutex to keep the main thread from changing teh game state mid render cycle */
+    SDL_Mutex *state_mutex;               /**< mutex to keep the main thread from changing teh game state mid-rendercycle */
 };
 
 bool create_render_thread(app_state *appstate) {
@@ -111,21 +111,21 @@ static bool render_loop(const struct render_thread_args *args) {
 
         if (video_time_ms > audio_time_ms ) {
             // delay until audio catches up
-            // TODO warning when the wait is an obscene amount of time
             const Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
             if (delay > 100) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "big ol delay of %l" PRId32, delay); //FIXME
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "large frame delay of %" PRId32, delay);
             }
             SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
         } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
+            // drop frame if audio is ahead of video
             SDL_Log("dropping frame");
             av_frame_free(&current_frame);
             return true;
         }
 
         //FIXME remove debugging lines
-        printf("played: %f" "\n", audio_time_ms);
-        printf("pts   : %f" "\n", video_time_ms);
+        //printf("played: %f" "\n", audio_time_ms);
+        //printf("pts   : %f" "\n", video_time_ms);
     }
 
     // render the frame

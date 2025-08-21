@@ -34,8 +34,8 @@ struct decoder_thread_args {
     SDL_AtomicInt *exit_flag;                  /**< 0, for continuing, 1 for soft exit decoding lool, -1 for hard exit */
 
     frame_queue *video_queue;                  /**< video queue to add frames to */
-    SDL_AudioStream *audio_stream;             /**< audio stream for sound playback */
     SDL_AtomicU32 *total_audio_samples;        /**< total ammount of samples added to the audio queue, used to sync renderer */
+    SDL_AudioStream *audio_stream;             /**< audio stream for sound playback */
 
     struct decoder_instructions *instructions; /**< what part of the file should be decoded, also handles swapping conds*/
 };
@@ -51,7 +51,8 @@ bool create_decoder_thread(app_state *appstate) {
         return false;
     }
     //populates playback instructions
-    appstate->playback_instructions->chunk_offset = appstate->current_game_state->chunk_offset;
+    appstate->playback_instructions->start_offset_bytes = appstate->current_game_state->start_offset_bytes;
+    appstate->playback_instructions->end_offset_bytes = appstate->current_game_state->end_offset_bytes;
     appstate->playback_instructions->audio_only = appstate->current_game_state->audio_only;
 
     appstate->playback_instructions->mutex = SDL_CreateMutex();
@@ -118,7 +119,6 @@ static void destroy_media_context(struct media_context *ctx) {
 /**
  * Initializes the media context by opening the input file and preparing
  * the codec, format context, and frame/packet allocations for video decoding
- *
  * //TODO hardcode decodecs
  *
  * @param media_ctx Pointer to the media context to initialize
@@ -217,14 +217,25 @@ static bool setup_file_context(struct media_context *media_ctx) {
 
 /**
  * @brief main decoding loop, segmented for easy early break
+ * breaks on exit_flag 1 or -1 (for hard exit)
  *
  * @param args thread args passed through
  * @param media_ctx file and decodec information
+ * @param current_offset_bytes current position of the packet in the file
  * @return true on clean exit, false otherwise
  */
-static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx)  {
+static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx, uint64_t *current_offset_bytes)  {
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
-        //while there is unparsed data left in the file
+        // while there is unparsed data left in the file
+
+        // increment the current offset
+        *current_offset_bytes += media_ctx->packet->size;
+        printf("test: %" PRIu64 "\n", *current_offset_bytes);
+        printf("end: %" PRIu32 "\n", args->instructions->end_offset_bytes);
+        if (*current_offset_bytes > args->instructions->end_offset_bytes) {
+            printf("end");
+        }
+
 
         if (media_ctx->packet->stream_index == AUDIO_STREAM_INDEX) {
             // if packet is in the audio stream
@@ -262,28 +273,28 @@ int play_file(void *data) {
         return -1;
     }
 
-    //main thread should be
+    //keeps main thread from changing gamestate while decoding
     SDL_LockMutex(args->instructions->mutex);
 
-    // while a valid gamestate has been passed
+    //plays a section of the file specified by instructions, setting exit flag to one exits out
     while (SDL_GetAtomicInt(args->exit_flag) != -1 ) {
 
+        //TODO check validity of instructions?
+
+        //resets exit flag
         SDL_SetAtomicInt(args->exit_flag, 0);
 
-        //FIXME define chunk size or just have byte offset hardcoded
-        const int64_t byte_offset = (int64_t)args->instructions->chunk_offset * 2048;
-
-        if (av_seek_frame(media_ctx.format_context, -1, byte_offset, AVSEEK_FLAG_BYTE) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't seek frame\n");
+        //seeks to start of instructed sequence of bytes
+        if (av_seek_frame(media_ctx.format_context, -1, args->instructions->start_offset_bytes, AVSEEK_FLAG_BYTE) < 0) {
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't seek to the given byte offset\n");
             break;
         }
+        uint64_t current_offset_bytes = args->instructions->start_offset_bytes;
 
         avcodec_flush_buffers(media_ctx.audio_codec_ctx);
         avcodec_flush_buffers(media_ctx.video_codec_ctx);
 
-        //TODO change error breaks to set exit flag to -1 and set what to do on end of file?
-        if (!decode_loop(args, &media_ctx)) {
-            // decoding loop has errored out, not exit flag, error should alreay be printed
+        if (!decode_loop(args, &media_ctx, &current_offset_bytes)) {
             break;
         }
 
@@ -292,7 +303,6 @@ int play_file(void *data) {
         // this lifts the mutex lock so the main thread can change the values;
         SDL_WaitCondition(args->instructions->instruction_available, args->instructions->mutex);
     }
-
 
     SDL_UnlockMutex(args->instructions->mutex);
 

@@ -13,7 +13,7 @@
 #include <stdint.h> //TODO make this the standard
 #include <stdbool.h>
 
-#define STATE_COUNT 4
+#define STATE_COUNT 4 //FIXME, this polutes the namespace
 
 typedef enum STATE_ID {
     MAIN_MENU_1,
@@ -29,8 +29,8 @@ typedef enum STATE_ID {
  */
 struct game_state {
     const STATE_ID id;
-    const uint32_t chunk_offset;
-    const uint32_t end_pts;
+    const uint32_t start_offset_bytes;
+    const uint32_t end_offset_bytes;
     const bool audio_only;
 
     //TODO string of buttons

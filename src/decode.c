@@ -51,7 +51,7 @@ bool decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
 
         // convert the frame
         if (swr_convert_frame(resampler, frame_resampled, frame) < 0) {
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't resample audio frame");
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't resample audio frame %s", SDL_GetError());
             av_frame_free(&frame_resampled);
             return false;
         }
