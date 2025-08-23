@@ -12,6 +12,8 @@
 
 #include <init.h>
 
+#include "game_logic.h"
+
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage
 
@@ -42,6 +44,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         if (event->button.button) {
             SDL_Log("clicked!");
+
+            change_game_state(appstate, TUTORIAL);
+
+            /* todo
+            if click is on a button {
+                do stuff :)
+            }
+             */
+
         }
     }
 

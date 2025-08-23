@@ -64,7 +64,7 @@ bool create_render_thread(app_state *appstate) {
     args->total_audio_samples = &appstate->total_audio_samples;
     args->audio_stream = appstate->audio_stream;
     args->game_state = &appstate->current_game_state;
-    args->state_mutex = appstate->state_mutex;
+    args->state_mutex = appstate->renderer_mutex;
 
     //starts decoder thread
     appstate->decoder_thread = SDL_CreateThread(render_frames, "decoder", args);
@@ -113,7 +113,7 @@ static bool render_loop(const struct render_thread_args *args) {
             // delay until audio catches up
             const Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
             if (delay > 100) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "large frame delay of %" PRId32, delay);
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "large frame delay of %" PRId32, delay); //TODO clean this up a bit
             }
             SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
         } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
@@ -122,10 +122,6 @@ static bool render_loop(const struct render_thread_args *args) {
             av_frame_free(&current_frame);
             return true;
         }
-
-        //FIXME remove debugging lines
-        //printf("played: %f" "\n", audio_time_ms);
-        //printf("pts   : %f" "\n", video_time_ms);
     }
 
     // render the frame
@@ -146,18 +142,33 @@ static bool render_loop(const struct render_thread_args *args) {
 int render_frames(void *data) {
     const struct render_thread_args *args = (struct render_thread_args *) data;
 
-    while (SDL_GetAtomicInt(args->exit_flag) >= 0) {
+    // exit flag at -1 will hard exit thread
+    while (SDL_GetAtomicInt(args->exit_flag) != -1) {
 
         SDL_LockMutex(args->state_mutex);
-        render_loop(args);
+        SDL_SetAtomicInt(args->exit_flag, 0);
 
-        if (SDL_GetAtomicInt(args->exit_flag) > 0) {
+        while (SDL_GetAtomicInt(args->exit_flag) == 0) {
+
+
+            if (!render_loop(args)) {
+                SDL_SetAtomicInt(args->exit_flag, -1);
+                break;
+            }
+
+            //render other layers
+
 
         }
 
+        SDL_UnlockMutex(args->state_mutex);
+        SDL_Delay(1); //gives time for the main thread to grab mutex
+
     }
 
-    //TODO cleanup?
+    SDL_UnlockMutex(args->state_mutex);
 
-    return true;
+    //TODO cleanup
+
+    return 0;
 }

@@ -38,7 +38,7 @@ typedef struct app_state {
     SDL_AtomicInt                stop_decoder_thread;   /**< the exit flag for the decoder thread, 1 to break main loop, -1 for hard exit */
 
     const struct game_state     *current_game_state;    /**< current state of the game, containing playback isntructions and buttons */
-    SDL_Mutex                   *state_mutex;           /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
+    SDL_Mutex                   *renderer_mutex;           /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
 
     struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */
 } app_state;

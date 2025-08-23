@@ -6,6 +6,7 @@
  * @version 1.0
  */
 
+#include <stdint.h>
 #include <SDL3/SDL.h>
 
 #include <libavutil/frame.h>
@@ -63,11 +64,7 @@ bool decode_audio(AVCodecContext *dec_ctx, const AVPacket *packet, AVFrame *fram
         }
 
         // increment total samples
-        uint32_t prev_samples;
-        do {
-            prev_samples = SDL_GetAtomicU32(total_audio_samples);
-        } while (!SDL_CompareAndSwapAtomicU32(total_audio_samples, prev_samples, prev_samples + frame->nb_samples));
-
+        const uint32_t prev_samples = SDL_GetAtomicU32(total_audio_samples);
         SDL_SetAtomicU32(total_audio_samples, prev_samples + frame->nb_samples);
 
         av_frame_unref(frame);

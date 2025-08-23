@@ -17,6 +17,8 @@ add_executable(airbud src/main.c
         src/render.h
         src/game_states.h
         src/game_states.c
+        src/game_logic.c
+        src/game_logic.h
 )
 
 target_include_directories(airbud PRIVATE

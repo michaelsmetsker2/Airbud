@@ -64,8 +64,8 @@ app_state *initialize() {
     //set initial gamestate to the main menu
 
     appstate->current_game_state = &GAME_STATES[MAIN_MENU_1];
-    appstate->state_mutex = SDL_CreateMutex();
-    if (!appstate->state_mutex) {
+    appstate->renderer_mutex = SDL_CreateMutex();
+    if (!appstate->renderer_mutex) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create mutex\n");
         return NULL;
     }

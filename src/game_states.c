@@ -14,24 +14,23 @@
 
 const struct game_state GAME_STATES[STATE_COUNT] = {
     [MAIN_MENU_1] = {
-        .id = MAIN_MENU_1, //FIXME potentially redundant?
         .start_offset_bytes = 0 * BYTES_PER_CHUNK,
         .end_offset_bytes = 6462 * BYTES_PER_CHUNK,
         .audio_only = false,
-        // .buttons = main_menu_buttons
     },
     [MAIN_MENU_2] = {
-        .id = MAIN_MENU_2, //FIXME potentially redundant?
         .start_offset_bytes = 6463 * BYTES_PER_CHUNK,
         .end_offset_bytes = 6761 * BYTES_PER_CHUNK,
         .audio_only = true,
-        // .buttons = main_menu_buttons
     },
     [MAIN_MENU_3] = {
-        .id = MAIN_MENU_3, //FIXME potentially redundant?
         .start_offset_bytes = 6762 * BYTES_PER_CHUNK,
         .end_offset_bytes = 7296 * BYTES_PER_CHUNK,
         .audio_only = true,
-        // .buttons = main_menu_buttons
+    },
+    [TUTORIAL] = {
+        .start_offset_bytes = 7297 * BYTES_PER_CHUNK,
+        .end_offset_bytes = 24292 * BYTES_PER_CHUNK,
+        .audio_only = false,
     },
 };
