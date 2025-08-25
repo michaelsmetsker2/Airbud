@@ -29,7 +29,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add 
     return SDL_APP_CONTINUE; /* carry on with the program!*/
 }
 
-/* This required function runs once per frame, main loop*/
+/* required function that runs once per frame */
 SDL_AppResult SDL_AppIterate(void *appstate) {
 
     return SDL_APP_CONTINUE;
@@ -37,36 +37,67 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 /* Runs when an event (mouse input, keypresses, etc.) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    if (event->type == SDL_EVENT_QUIT) {
-        return SDL_APP_SUCCESS;
-    }
+    app_state *state = (app_state *) appstate;
 
-    if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-        if (event->button.button) {
-            SDL_Log("clicked!");
+    switch (event->type) {
+        case SDL_EVENT_QUIT:
+            // X button clicked
+            return SDL_APP_SUCCESS;
 
-            change_game_state(appstate, TUTORIAL);
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            if (event->button.button) {
+                SDL_Log("clicked!");
 
-            /* todo
-            if click is on a button {
-                do stuff :)
+                change_game_state(appstate, MAIN_MENU_2);
+
+                /* todo
+                for each button in the current state
+                    if click is on a button {
+                        do stuff :)
+                    }
+                */
             }
-             */
+            break;
 
-        }
+        case SDL_EVENT_KEY_DOWN:
+            if (event->key.key == SDLK_F) {
+                const Uint32 flags = SDL_GetWindowFlags(state->window);
+
+                if (flags & SDL_WINDOW_FULLSCREEN) {
+                    // currently fullscreem, changes to windowed
+                    SDL_SetWindowFullscreen(state->window, false);
+                } else {
+                    // currently windowed, changes to fullscreen
+                    SDL_SetWindowFullscreen(state->window, true);
+                }
+            }
+            break;
+        default:
+            // unhandled event
+            break;
     }
-
-    //TODO press f to go fullscreen
 
     return SDL_APP_CONTINUE;
 }
 
-/* Runs once at shutdown. */
+/* runs at shutdown. */
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
+    app_state *state = (app_state *) appstate;
     /* SDL will clean up the window/renderer for us. */
 
     //TODO end whole program when a single thread errors out
 
-    //TODO clean up framequeue
+    destroy_frameQueue(state->render_queue);
     //SDL_DestroyAudioStream
 }
+
+/* //FIXME this happened on exit
+Assertion (frame->private_ref && frame->private_ref->size == sizeof(FrameDecodeData)) || !(avctx->codec->capabilities &
+(1 << 1)) failed at D:/code/ffmpeg/src/libavcodec/decode.c:705
+
+FIXME I also got an error once when exiting out on an audio only chunk
+Process finished with exit code -1073741819 (0xC0000005)
+
+scaling issue when not rendereing a new frame when going from fullscreeen to windowed
+
+*/

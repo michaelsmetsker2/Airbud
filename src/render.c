@@ -113,7 +113,7 @@ static bool render_loop(const struct render_thread_args *args) {
             // delay until audio catches up
             const Uint32 delay = (uint32_t)(video_time_ms - audio_time_ms);
             if (delay > 100) {
-                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "large frame delay of %" PRId32, delay); //TODO clean this up a bit
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "large frame delay of %" PRId32, delay);
             }
             SDL_Delay((uint32_t)(video_time_ms - audio_time_ms));
         } else if (audio_time_ms - video_time_ms > LAG_TOLERANCE_MS) {
@@ -149,7 +149,7 @@ int render_frames(void *data) {
         SDL_SetAtomicInt(args->exit_flag, 0);
 
         while (SDL_GetAtomicInt(args->exit_flag) == 0) {
-
+            // main render loop
 
             if (!render_loop(args)) {
                 SDL_SetAtomicInt(args->exit_flag, -1);
@@ -157,13 +157,11 @@ int render_frames(void *data) {
             }
 
             //render other layers
-
-
         }
 
+        //reuns when the main thread sets the exit flag and changes the gamestate
         SDL_UnlockMutex(args->state_mutex);
         SDL_Delay(1); //gives time for the main thread to grab mutex
-
     }
 
     SDL_UnlockMutex(args->state_mutex);

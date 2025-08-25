@@ -230,7 +230,24 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
         // increment the current offset
         *current_offset_bytes += media_ctx->packet->size;
         if (*current_offset_bytes > args->instructions->end_offset_bytes) {
-            printf("end of chunk");
+            //end ef the section to decode has been reached
+
+            // waits for audio queue to empty
+            while (SDL_GetAudioStreamAvailable(args->audio_stream) > 0 ) {
+
+                if (args->exit_flag) {
+                    return true;
+                }
+                SDL_Delay(1);
+            }
+
+            //waits for video queue to empty (if there is one more frame left)
+            SDL_LockMutex(args->video_queue->mutex);
+            SDL_WaitCondition(args->video_queue->empty, args->video_queue->mutex);
+            SDL_UnlockMutex(args->video_queue->mutex);
+
+            //FIXME run a function to handle where to go next
+
             SDL_SetAtomicInt(args->exit_flag, 1);
         }
 
@@ -297,12 +314,12 @@ int play_file(void *data) {
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_UnlockMutex(args->instructions->mutex);
-        SDL_Delay(2); // gives time for main thread to grab mutex
+        SDL_Delay(4); // gives time for main thread to grab mutex
     }
 
-    //there is no new instructions or there was an error
-    //either way clean up
-    //TODO is decoder args getting cleaned up?
+    // there is no new instructions or there was an error
+    // either way clean up
+    // TODO is decoder args getting cleaned up?
 
     destroy_media_context(&media_ctx);
     return 0;

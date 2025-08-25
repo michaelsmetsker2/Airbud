@@ -24,7 +24,7 @@ struct decoder_instructions {
 
     bool audio_only;                        /**< whether the next section only needs decoded audio */
     uint32_t start_offset_bytes;            /**< the point in the file to start decoding from */
-    uint32_t end_offset_bytes;              /**< the end of the current chunk, //TODO figures out what to do next based on what? */
+    uint32_t end_offset_bytes;              /**< the end of the current chunk */
 
     SDL_Mutex *mutex;                       /**< mutex will be held by decoder until its exit flag is triggered */
 };

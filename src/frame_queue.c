@@ -35,6 +35,7 @@ frame_queue *create_frame_queue() {
     queue->mutex = SDL_CreateMutex();
     queue->not_empty = SDL_CreateCondition();
     queue->not_full = SDL_CreateCondition();
+    queue->empty = SDL_CreateCondition();
 
     if (!queue->mutex || !queue->not_empty || !queue->not_full) {
         SDL_DestroyMutex(queue->mutex);
@@ -47,7 +48,7 @@ frame_queue *create_frame_queue() {
     return queue;
 }
 
-bool enqueue_frame(frame_queue *queue, AVFrame *frame) {
+bool enqueue_frame(frame_queue *queue, const AVFrame *frame) {
 
     //queue is full, should not even be called if this is the case
     if (queue->size == queue->capacity) {
@@ -85,6 +86,11 @@ AVFrame *dequeue_frame(frame_queue *queue) {
     queue->size--;
 
     SDL_SignalCondition(queue->not_full);
+
+    if (queue->size == 0) {
+        SDL_SignalCondition(queue->empty);
+    }
+
     return frame;
 }
 
@@ -118,6 +124,7 @@ void destroy_frameQueue(frame_queue *queue) {
     SDL_DestroyMutex(queue->mutex);
     SDL_DestroyCondition(queue->not_empty);
     SDL_DestroyCondition(queue->not_full);
+    SDL_DestroyCondition(queue->empty);
 
     free(queue->frames);
     free(queue);

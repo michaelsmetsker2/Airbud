@@ -17,6 +17,7 @@
 /**
  * @brief cleanly updates the gamestate
  * makes sure all threads are aware of the change, should only be called from main thread
+ *
  * @param appstate basic information struct from main thread
  * @param destination gamestate to change to
  * @return true on success, false otherwise

@@ -28,6 +28,7 @@ typedef struct frame_queue {
     SDL_Mutex *mutex;         /**< Guards access from multiple threads to prevent data corruption */
     SDL_Condition *not_empty; /**< Signaled when frames are added */
     SDL_Condition *not_full;  /**< Signaled when frames are removed */
+    SDL_Condition *empty;     /**< Signaled when the queue is becomes empty from dequeueing */
 } frame_queue;
 
 /**
@@ -44,7 +45,7 @@ frame_queue *create_frame_queue();
  * @param frame AVFrame to clone and add to the queue
  * @return true on success false on failure
  */
-bool enqueue_frame(frame_queue *queue, AVFrame *frame);
+bool enqueue_frame(frame_queue *queue, const AVFrame *frame);
 
 /**
  * @brief pops the first frame in the given queue

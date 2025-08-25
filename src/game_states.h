@@ -30,7 +30,10 @@ typedef struct button {
 
 } button;
 
-
+/**
+ * @enum STATE_ID
+ * @brief names that corrospond to positions in the GAME_STATES array of game_states
+ */
 typedef enum STATE_ID {
     MAIN_MENU_1,
     MAIN_MENU_2,
@@ -40,26 +43,20 @@ typedef enum STATE_ID {
 
 /**
  * @struct game_state
- * TODO
- *
- *
+ * @brief all necessary information pertaining to a decodable section of the vob file
  */
 struct game_state {
-    const uint32_t start_offset_bytes;
-    const uint32_t end_offset_bytes;
-    const bool audio_only;              /** if the corosponding section of the file only has audio information */
+    const uint32_t start_offset_bytes; /** the offset where decoding should start */
+    const uint32_t end_offset_bytes;   /** the offset where decoding should end*/
+    const bool audio_only;             /** if the corosponding section of the file only has audio information */
 
-    const STATE_ID next_state;
+    const void *next_state;            /** points to a function that returns the enum of  the next gamestate when decoding is finished */ //TODO this will bneed to be passed some data
 
-    const button *buttons;
-    const uint8_t buttons_count;
-
-    //TODO next sequential chunk?? maybe have 0 be for looping
-    //TODO potentially references to logic functions? of this stuff?
+    const button *buttons;             /** TODO*/
+    const uint8_t buttons_count;       /** TODO*/
 };
 
+// Array of all game states, index aligns with the STATE_ID enum
 extern const struct game_state GAME_STATES[STATE_COUNT];
-
-
 
 #endif //GAME_STATES_H
