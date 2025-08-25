@@ -297,7 +297,7 @@ int play_file(void *data) {
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_UnlockMutex(args->instructions->mutex);
-        SDL_Delay(1); // gives time for main thread to grab mutex
+        SDL_Delay(2); // gives time for main thread to grab mutex
     }
 
     //there is no new instructions or there was an error

@@ -24,9 +24,11 @@ bool change_game_state(app_state *appstate, const STATE_ID destination) {
     printf("debug");
 
     // resets audio clock
+    //FIXME this is fucked (potentially) 8/24/25
     SDL_SetAtomicU32(&appstate->total_audio_samples, 0);
-    
-    // FIXME conditionaly clear render queues?
+
+    // FIXME conditionaly clear this??
+    clear_frame_queue(appstate->render_queue);
 
     appstate->current_game_state = &GAME_STATES[destination];
 

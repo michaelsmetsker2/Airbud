@@ -88,20 +88,32 @@ AVFrame *dequeue_frame(frame_queue *queue) {
     return frame;
 }
 
-void destroy_frameQueue(frame_queue *queue) {
+void clear_frame_queue(frame_queue *queue) {
     if (!queue) return;
 
     SDL_LockMutex(queue->mutex);
 
-    // free all frames in the queue
-    for (int i = 0; i < queue->capacity; i++) {
-        if (queue->frames[i]) {
+    if (queue->size > 0) {
+        // free all frames in the queue
+        for (int i = 0; i < queue->capacity; i++) {
+            if (queue->frames[i]) {
 
-            av_frame_free(&queue->frames[i]);
+                av_frame_free(&queue->frames[i]);
+            }
         }
+
+        queue->size = 0;
+        queue->front = 0;
+        queue->rear = 0;
     }
 
     SDL_UnlockMutex(queue->mutex);
+}
+
+void destroy_frameQueue(frame_queue *queue) {
+    if (!queue) return;
+
+    clear_frame_queue(queue);
 
     SDL_DestroyMutex(queue->mutex);
     SDL_DestroyCondition(queue->not_empty);

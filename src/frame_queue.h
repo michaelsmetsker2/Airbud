@@ -38,7 +38,6 @@ frame_queue *create_frame_queue();
 
 /**
  * @brief takes a copy of a frame and sends it to the queue
- *
  * does not internally handle mutex
  *
  * @param queue queue to be added to
@@ -49,7 +48,6 @@ bool enqueue_frame(frame_queue *queue, AVFrame *frame);
 
 /**
  * @brief pops the first frame in the given queue
- *
  * does not internally handle mutex
  *
  * @param queue queue to pop from
@@ -58,9 +56,16 @@ bool enqueue_frame(frame_queue *queue, AVFrame *frame);
 AVFrame *dequeue_frame(frame_queue *queue);
 
 /**
- * @brief destroys a frame_queue freeing all associated resources
+ * @brief clears the given frame_queue
+ * internally handles mutex
  *
- * DOES internally handle mutex
+ * @param queue pointer to queue to clear
+ */
+void clear_frame_queue(frame_queue *queue);
+
+/**
+ * @brief destroys a frame_queue freeing all associated resources
+ * internally handle mutex
  *
  * @param queue queue to be destroyed
  */
