@@ -11,6 +11,7 @@
 #ifndef INIT_H
 #define INIT_H
 
+#include "stdint.h"
 #include <frame_queue.h>
 #include <SDL3/SDL.h>
 #include <stdbool.h>
@@ -22,6 +23,7 @@
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
 typedef struct app_state {
+
     SDL_Window                  *window;                /**< main Window for the program */
     SDL_Renderer                *renderer;              /**< main Renderer for the program */
     SDL_Texture                 *base_texture;          /**< Reused texture for main video playback */
@@ -38,8 +40,9 @@ typedef struct app_state {
     SDL_AtomicInt                stop_decoder_thread;   /**< the exit flag for the decoder thread, 1 to break main loop, -1 for hard exit */
 
     const struct game_state     *current_game_state;    /**< current state of the game, containing playback isntructions and buttons */
-    SDL_Mutex                   *renderer_mutex;           /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
+    SDL_Mutex                   *renderer_mutex;        /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
 
+    uint32_t                     decoding_ended_event;  /** id of the SDL event that triggers when the decoder thread needs new instructions */
     struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */
 
 } app_state;

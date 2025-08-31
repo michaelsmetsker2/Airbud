@@ -86,6 +86,7 @@ static bool render_loop(const struct render_thread_args *args) {
     SDL_LockMutex(args->queue->mutex);
 
     if (args->queue->size == 0) {
+        SDL_Log("no frames \n");
         if (!SDL_WaitConditionTimeout(args->queue->not_empty, args->queue->mutex, TIMEOUT_DELAY_MS)) {
             //timeout, it is not abnormal for no frames to be in the queue, does not set exit thread
             SDL_UnlockMutex(args->queue->mutex);
@@ -145,14 +146,19 @@ int render_frames(void *data) {
     // exit flag at -1 will hard exit thread
     while (SDL_GetAtomicInt(args->exit_flag) != -1) {
 
+
+        SDL_Log("we back? \n");
+
         SDL_LockMutex(args->state_mutex);
         SDL_SetAtomicInt(args->exit_flag, 0);
 
         while (SDL_GetAtomicInt(args->exit_flag) == 0) {
             // main render loop
+            SDL_Log("we goin \n");
 
             if (!render_loop(args)) {
                 SDL_SetAtomicInt(args->exit_flag, -1);
+                SDL_Log("we tf out \n");
                 break;
             }
 

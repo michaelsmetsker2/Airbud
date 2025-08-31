@@ -27,8 +27,6 @@ struct decoder_instructions {
     uint32_t end_offset_bytes;              /**< the end of the current chunk */
 
     SDL_Mutex *mutex;                       /**< mutex will be held by decoder until its exit flag is triggered */
-
-    SDL_AtomicInt end_reached;              /**< mutex independent flag triggered when the decoder has reached the end of the instructed bytes */
 };
 
 // TODO make function to cleanup decoder_instructions

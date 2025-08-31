@@ -9,6 +9,7 @@
  */
 
 #include <SDL3/SDL.h>
+#include <stdint.h>
 
 #include <read_file.h>
 #include <decode.h>
@@ -37,7 +38,8 @@ struct decoder_thread_args {
     SDL_AtomicU32 *total_audio_samples;        /**< total ammount of samples added to the audio queue, used to sync renderer */
     SDL_AudioStream *audio_stream;             /**< audio stream for sound playback */
 
-    struct decoder_instructions *instructions; /**< what part of the file should be decoded, also handles swapping conds*/
+    SDL_Event request_instruction;             /**< event to trigger when decoding is finished with current instructions */
+    struct decoder_instructions *instructions; /**< what part of the file should be decoded, also handles swapping conds */
 };
 
 bool create_decoder_thread(app_state *appstate) {
@@ -61,8 +63,6 @@ bool create_decoder_thread(app_state *appstate) {
         return false;
     }
 
-    SDL_SetAtomicInt(&appstate->playback_instructions->end_reached, 0);
-
     // creates and populates args
     struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
     if (!args) {
@@ -81,6 +81,10 @@ bool create_decoder_thread(app_state *appstate) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't allocate decoder thread\n");
         return false;
     }
+
+    //creates end decoding event
+    SDL_zero(args->request_instruction);
+    args->request_instruction.type = appstate->decoding_ended_event;
 
     return true;
 }
@@ -227,7 +231,7 @@ static bool setup_file_context(struct media_context *media_ctx) {
  * @param current_offset_bytes current position of the packet in the file
  * @return true on clean exit, false otherwise
  */
-static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx, uint64_t *current_offset_bytes)  {
+static bool decode_loop(struct decoder_thread_args *args, const struct media_context *media_ctx, uint64_t *current_offset_bytes)  {
 
     // while there is unparsed data left in the file
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
@@ -235,33 +239,39 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
         // increment the current offset
         *current_offset_bytes += media_ctx->packet->size;
 
+        //SDL_Log("offset: %" PRIu64 " \n", *current_offset_bytes);
+        //SDL_Log("end   : %" PRIu32 " \n", args->instructions->end_offset_bytes);
+
         if (*current_offset_bytes > args->instructions->end_offset_bytes) {
             //the end of the section to decode has been reached
 
             SDL_Log("end of section decoded \n");
+            //SDL_Delay(40);
 
-
-
+            //SDL_SetAtomicU32(args->total_audio_samples, 0);
+            //SDL_ClearAudioStream(args->audio_stream);
             // waits for audio queue to empty
             while (SDL_GetAudioStreamAvailable(args->audio_stream) > 0 ) {
+
+
                 if (SDL_GetAtomicInt(args->exit_flag) != 0) {
                     return true;
                 }
-                SDL_Log("waitin on audio to flush \n");
+
                 SDL_Delay(1);
             }
-
             SDL_Log("audio is empty \n");
+            SDL_PushEvent(&args->request_instruction);
+            /*
 
+            clear_frame_queue(args->video_queue);
             //waits for video queue to empty (if there is one more frames left after audio)
             SDL_LockMutex(args->video_queue->mutex);
             SDL_WaitCondition(args->video_queue->empty, args->video_queue->mutex);
             SDL_UnlockMutex(args->video_queue->mutex);
-
             SDL_Log("video is empty \n");
+            */
 
-            //Tells main thread
-            SDL_SetAtomicInt(&args->instructions->end_reached, 1);
 
             SDL_SetAtomicInt(args->exit_flag, 1);
             return true;
@@ -293,7 +303,7 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
 }
 
 int play_file(void *data) {
-    const struct decoder_thread_args *args = data;
+    struct decoder_thread_args *args = data;
 
     // Sets up media context struct
     struct media_context media_ctx = {0};
@@ -329,6 +339,7 @@ int play_file(void *data) {
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_UnlockMutex(args->instructions->mutex);
+        //TODO make this a signal instead of an arbitrary wait time? (main thread would need to grab mutex first pottentially
         SDL_Delay(4); // gives time for main thread to grab mutex
     }
 

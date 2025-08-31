@@ -61,12 +61,19 @@ app_state *initialize() {
 
     // sets total_audio_samples to 0
     SDL_SetAtomicU32(&appstate->total_audio_samples, 0);
-    //set initial gamestate to the main menu
+    // set initial gamestate to the main menu
 
     appstate->current_game_state = &GAME_STATES[MAIN_MENU_1];
     appstate->renderer_mutex = SDL_CreateMutex();
     if (!appstate->renderer_mutex) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't create mutex\n");
+        return NULL;
+    }
+
+    // sets id of decoding ended event
+    appstate->decoding_ended_event = SDL_RegisterEvents(1);
+    if (!appstate->decoding_ended_event) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "couldn't register decoder end event\n");
         return NULL;
     }
 

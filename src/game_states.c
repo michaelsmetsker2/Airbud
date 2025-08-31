@@ -12,14 +12,15 @@
 
 #define BYTES_PER_CHUNK 2048
 
-static STATE_ID next_MAIN_MENU_1() { return MAIN_MENU_1; }
-static STATE_ID next_MAIN_MENU_2() { return MAIN_MENU_3; }
+static STATE_ID next_MAIN_MENU_1() { return MAIN_MENU_2; }
+static STATE_ID next_MAIN_MENU_2() { return TUTORIAL; }
 static STATE_ID next_MAIN_MENU_3() { return MAIN_MENU_1; }
 
 const struct game_state GAME_STATES[STATE_COUNT] = {
     [MAIN_MENU_1] = {
         .start_offset_bytes = 0 * BYTES_PER_CHUNK,
         .end_offset_bytes = 6462 * BYTES_PER_CHUNK,
+        //.end_offset_bytes = 13662 * BYTES_PER_CHUNK, //debuging
         .audio_only = false,
         .next_state = next_MAIN_MENU_1,
     },
