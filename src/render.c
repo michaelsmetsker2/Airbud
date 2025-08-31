@@ -90,7 +90,7 @@ static bool render_loop(const struct render_thread_args *args) {
         if (!SDL_WaitConditionTimeout(args->queue->not_empty, args->queue->mutex, TIMEOUT_DELAY_MS)) {
             //timeout, it is not abnormal for no frames to be in the queue, does not set exit thread
             SDL_UnlockMutex(args->queue->mutex);
-            return false;
+            return true;
         }
     }
 
