@@ -14,6 +14,8 @@
 #include <init.h>
 #include <game_states.h>
 
+//TODO gamedata struct
+
 /**
  * @brief cleanly updates the gamestate
  * makes sure all threads are aware of the change, should only be called from main thread

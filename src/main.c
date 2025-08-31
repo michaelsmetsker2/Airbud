@@ -49,7 +49,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
 
                 change_game_state(appstate, MAIN_MENU_2);
 
-                /* todo
+                /* todo button handling
                 for each button in the current state
                     if click is on a button {
                         do stuff :)

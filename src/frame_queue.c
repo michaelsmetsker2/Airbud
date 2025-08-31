@@ -99,7 +99,6 @@
 
         SDL_LockMutex(queue->mutex);
 
-        SDL_Log("stuf is bein cleared");
         if (queue->size > 0) {
             // free all frames in the queue
             for (int i = 0; i < queue->capacity; i++) {

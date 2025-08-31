@@ -238,40 +238,22 @@ static bool decode_loop(struct decoder_thread_args *args, const struct media_con
 
         // increment the current offset
         *current_offset_bytes += media_ctx->packet->size;
-
-        //SDL_Log("offset: %" PRIu64 " \n", *current_offset_bytes);
-        //SDL_Log("end   : %" PRIu32 " \n", args->instructions->end_offset_bytes);
-
         if (*current_offset_bytes > args->instructions->end_offset_bytes) {
             //the end of the section to decode has been reached
 
             SDL_Log("end of section decoded \n");
-            //SDL_Delay(40);
 
-            //SDL_SetAtomicU32(args->total_audio_samples, 0);
-            //SDL_ClearAudioStream(args->audio_stream);
             // waits for audio queue to empty
             while (SDL_GetAudioStreamAvailable(args->audio_stream) > 0 ) {
-
 
                 if (SDL_GetAtomicInt(args->exit_flag) != 0) {
                     return true;
                 }
-
                 SDL_Delay(1);
             }
-            SDL_Log("audio is empty \n");
+
+            // potentially could cause issues if there is a video frame as the last packet, but it never seems to be the case
             SDL_PushEvent(&args->request_instruction);
-            /*
-
-            clear_frame_queue(args->video_queue);
-            //waits for video queue to empty (if there is one more frames left after audio)
-            SDL_LockMutex(args->video_queue->mutex);
-            SDL_WaitCondition(args->video_queue->empty, args->video_queue->mutex);
-            SDL_UnlockMutex(args->video_queue->mutex);
-            SDL_Log("video is empty \n");
-            */
-
 
             SDL_SetAtomicInt(args->exit_flag, 1);
             return true;
