@@ -12,9 +12,9 @@
 
 #define BYTES_PER_CHUNK 2048
 
-static STATE_ID next_MAIN_MENU_1() { return MAIN_MENU_2; }
+static STATE_ID next_MAIN_MENU_1() { return MAIN_MENU_1; }
 static STATE_ID next_MAIN_MENU_2() { return MAIN_MENU_3; }
-static STATE_ID next_MAIN_MENU_3() { return MAIN_MENU_2; }
+static STATE_ID next_MAIN_MENU_3() { return MAIN_MENU_1; }
 
 const struct game_state GAME_STATES[STATE_COUNT] = {
     [MAIN_MENU_1] = {

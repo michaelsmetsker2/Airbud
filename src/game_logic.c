@@ -31,6 +31,7 @@ bool change_game_state(app_state *appstate, const STATE_ID destination) {
 
     // changes main thread gamestate
     appstate->current_game_state = &GAME_STATES[destination];
+    SDL_Log("changing gamestate to %d", destination);
 
     // updates decoding instructions
     appstate->playback_instructions->start_offset_bytes = appstate->current_game_state->start_offset_bytes;

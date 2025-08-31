@@ -41,6 +41,7 @@ typedef struct app_state {
     SDL_Mutex                   *renderer_mutex;           /**< mutex normally held by the render thread, blocks changing the gamestate during rendering */
 
     struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */
+
 } app_state;
 
 /**

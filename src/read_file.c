@@ -61,6 +61,8 @@ bool create_decoder_thread(app_state *appstate) {
         return false;
     }
 
+    SDL_SetAtomicInt(&appstate->playback_instructions->end_reached, 0);
+
     // creates and populates args
     struct decoder_thread_args *args = malloc(sizeof(struct decoder_thread_args));
     if (!args) {
@@ -218,41 +220,55 @@ static bool setup_file_context(struct media_context *media_ctx) {
  * @brief main decoding loop, segmented for easy early break
  * breaks on exit_flag 1 or -1 (for hard exit)
  *
+ * TODO check if end of file?
+ *
  * @param args thread args passed through
  * @param media_ctx file and decodec information
  * @param current_offset_bytes current position of the packet in the file
  * @return true on clean exit, false otherwise
  */
 static bool decode_loop(const struct decoder_thread_args *args, const struct media_context *media_ctx, uint64_t *current_offset_bytes)  {
+
+    // while there is unparsed data left in the file
     while (!SDL_GetAtomicInt(args->exit_flag) && av_read_frame(media_ctx->format_context, media_ctx->packet) >= 0) {
-        // while there is unparsed data left in the file
 
         // increment the current offset
         *current_offset_bytes += media_ctx->packet->size;
+
         if (*current_offset_bytes > args->instructions->end_offset_bytes) {
-            //end ef the section to decode has been reached
+            //the end of the section to decode has been reached
+
+            SDL_Log("end of section decoded \n");
+
+
 
             // waits for audio queue to empty
             while (SDL_GetAudioStreamAvailable(args->audio_stream) > 0 ) {
-
-                if (args->exit_flag) {
+                if (SDL_GetAtomicInt(args->exit_flag) != 0) {
                     return true;
                 }
+                SDL_Log("waitin on audio to flush \n");
                 SDL_Delay(1);
             }
 
-            //waits for video queue to empty (if there is one more frame left)
+            SDL_Log("audio is empty \n");
+
+            //waits for video queue to empty (if there is one more frames left after audio)
             SDL_LockMutex(args->video_queue->mutex);
             SDL_WaitCondition(args->video_queue->empty, args->video_queue->mutex);
             SDL_UnlockMutex(args->video_queue->mutex);
 
-            //FIXME run a function to handle where to go next
+            SDL_Log("video is empty \n");
+
+            //Tells main thread
+            SDL_SetAtomicInt(&args->instructions->end_reached, 1);
 
             SDL_SetAtomicInt(args->exit_flag, 1);
+            return true;
         }
 
         if (media_ctx->packet->stream_index == AUDIO_STREAM_INDEX) {
-            // if packet is in the audio stream
+            // if packet is in the audio stream, decode it
 
             if (!decode_audio(media_ctx->audio_codec_ctx, media_ctx->packet, media_ctx->audio_frame, media_ctx->resample_context,
                 args->audio_stream, args->total_audio_samples))
@@ -261,10 +277,10 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
             }
 
         } else if (media_ctx->packet->stream_index == VIDEO_STREAM_INDEX) {
-            // packet is in video stream
+            // packet is in video stream, decode it
 
             if (args->instructions->audio_only) {
-                av_packet_unref(media_ctx->packet); // TODO make sure this is propper, may leak do to some caching bs
+                av_packet_unref(media_ctx->packet);
             } else {
                 if (!decode_video(media_ctx->video_codec_ctx, media_ctx->packet, media_ctx->video_frame, args->video_queue)) {
                     return false;
@@ -277,7 +293,7 @@ static bool decode_loop(const struct decoder_thread_args *args, const struct med
 }
 
 int play_file(void *data) {
-    const struct decoder_thread_args *args = (struct decoder_thread_args *) data;
+    const struct decoder_thread_args *args = data;
 
     // Sets up media context struct
     struct media_context media_ctx = {0};
@@ -290,12 +306,11 @@ int play_file(void *data) {
     //plays a section of the file specified by instructions, setting exit flag to one exits out
     while (SDL_GetAtomicInt(args->exit_flag) != -1 ) {
 
-        //keeps main thread from changing gamestate while decoding
-
-        //TODO check validity of instructions?
+        //TODO check validity of instructions
 
         //resets exit flag
         SDL_SetAtomicInt(args->exit_flag, 0);
+        //keeps main thread from changing gamestate while decoding
         SDL_LockMutex(args->instructions->mutex);
 
         //seeks to start of instructed sequence of bytes

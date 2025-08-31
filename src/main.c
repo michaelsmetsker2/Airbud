@@ -13,6 +13,7 @@
 #include <init.h>
 
 #include "game_logic.h"
+#include "read_file.h"
 
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage
@@ -31,13 +32,28 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add 
 
 /* required function that runs once per frame */
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    const app_state *state = appstate;
+
+    //checks if decoding has reached teh end of the gamestate, and changes it accordingly
+    if (SDL_GetAtomicInt(&state->playback_instructions->end_reached) == 1 ) {
+
+        SDL_Log("signal read by main thread \n");
+
+        //audio and video queues will inherently be clear when this is called, this wastes time double clearing them
+        const STATE_ID destination = state->current_game_state->next_state(NULL); //FIXME ad params to call
+
+        // updates gamestes
+        change_game_state(appstate, destination);
+
+        SDL_SetAtomicInt(&state->playback_instructions->end_reached, 0);
+    }
 
     return SDL_APP_CONTINUE;
 }
 
 /* Runs when an event (mouse input, keypresses, etc.) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    app_state *state = (app_state *) appstate;
+    const app_state *state = appstate;
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
@@ -100,4 +116,5 @@ Process finished with exit code -1073741819 (0xC0000005)
 
 scaling issue when not rendereing a new frame when going from fullscreeen to windowed
 
+sometimes starts blank or somshit onf first startup
 */
