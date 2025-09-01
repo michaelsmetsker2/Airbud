@@ -12,6 +12,7 @@
 #include <read_file.h>
 #include <render.h>
 #include <game_states.h>
+#include <game_logic.h>
 
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 480
@@ -100,6 +101,19 @@ bool  start_threads(app_state *appstate) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "failed to initialize the render thread\n");
         return false;
     }
+
+    return true;
+}
+
+bool game_init(struct game_data *data) {
+
+    data->outs = 0;
+    data->strikes = 0;
+
+    //set seed to a random number between 1 and 900? then mod sumthin
+
+    //TODO fill
+
 
     return true;
 }

@@ -12,9 +12,19 @@
 
 #include <stdbool.h>
 #include <init.h>
-#include <game_states.h>
 
-//TODO gamedata struct
+/**
+ * @struct game_data
+ * @brief simple struct containing all game specific data
+ */
+struct game_data {
+    bool        league;  /** difficuly, false for little league, true for major league */
+    uint16_t    seed;    /** TODO */
+
+    uint8_t     strikes;
+    uint8_t     outs;
+    uint8_t     runs;
+};
 
 /**
  * @brief cleanly updates the gamestate

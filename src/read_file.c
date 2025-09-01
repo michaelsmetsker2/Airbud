@@ -321,7 +321,7 @@ int play_file(void *data) {
 
         // this lifts the mutex lock so the main thread can change the values;
         SDL_UnlockMutex(args->instructions->mutex);
-        //TODO make this a signal instead of an arbitrary wait time? (main thread would need to grab mutex first pottentially
+        //TODO potentiallu make this a signal instead of an arbitrary wait time? (main thread would need to grab mutex first pottentially
         SDL_Delay(4); // gives time for main thread to grab mutex
     }
 

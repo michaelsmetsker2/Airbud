@@ -12,17 +12,20 @@
 #define INIT_H
 
 #include "stdint.h"
-#include <frame_queue.h>
 #include <SDL3/SDL.h>
 #include <stdbool.h>
 
+#include <frame_queue.h>
 #include "game_states.h"
+
+// forward declaration of game_data, definition is in game_logic.h
+struct game_data;
 
 /**
  * @struct app_state
  * @brief Struct for carrying basic info to all parts of the SDL program
  */
-typedef struct app_state {
+typedef struct app_state { //TODO see what of these pointers can be made const
 
     SDL_Window                  *window;                /**< main Window for the program */
     SDL_Renderer                *renderer;              /**< main Renderer for the program */
@@ -45,6 +48,8 @@ typedef struct app_state {
     uint32_t                     decoding_ended_event;  /** id of the SDL event that triggers when the decoder thread needs new instructions */
     struct decoder_instructions *playback_instructions; /**< Instructions to tell what part of the file to decode and mutex signals */
 
+    struct game_data            *game_data;              /**< collection of variables related to the actual gameplay, edited from main thread */
+
 } app_state;
 
 /**
@@ -61,5 +66,12 @@ app_state *initialize();
  * @return true on success, false otherwise
  */
 bool start_threads(app_state *appstate);
+
+/**
+ * @brief populates the game_data struct in appstate
+ * @param data game data to populate
+ * @return true on success, false otherwise
+ */
+bool game_init(struct game_data *data);
 
 #endif //INIT_H

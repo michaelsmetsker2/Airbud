@@ -36,7 +36,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
 /* Runs when an event (mouse input, keypresses, etc.) occurs. */
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
-    const app_state *state = appstate;
+    app_state *state = appstate;
 
     switch (event->type) {
         case SDL_EVENT_QUIT:
@@ -78,7 +78,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
                 SDL_Log("signal read by main thread \n");
 
                 //audio and video queues will inherently be clear when this is called, this wastes time double clearing them
-                const STATE_ID destination = state->current_game_state->next_state(NULL); //FIXME ad params to call
+                const STATE_ID destination = state->current_game_state->next_state(state->game_data); //FIXME ad params to call
 
                 // updates gamestes
                 change_game_state(appstate, destination);
@@ -100,11 +100,11 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result) {
     //SDL_DestroyAudioStream
 }
 
-/* //FIXME this happened on exit
+/* //FIXME unknown issues and errors
 Assertion (frame->private_ref && frame->private_ref->size == sizeof(FrameDecodeData)) || !(avctx->codec->capabilities &
 (1 << 1)) failed at D:/code/ffmpeg/src/libavcodec/decode.c:705
 
-FIXME I also got an error once when exiting out on an audio only chunk
+I also got an error once when exiting out on an audio only chunk
 Process finished with exit code -1073741819 (0xC0000005)
 
 scaling issue when not rendereing a new frame when going from fullscreeen to windowed

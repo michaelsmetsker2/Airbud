@@ -15,6 +15,9 @@
 
 #define STATE_COUNT 4 //FIXME, this polutes the namespace?
 
+// forward declaration of game_data, definition is in game_logic.h
+struct game_data;
+
 /**
  * TODO
  *
@@ -43,23 +46,23 @@ typedef enum STATE_ID {
 
 /**
  * @typedef next_state_func
- * @brief Function pointer determining the next gamestate to go to after the decoder has reached the end of playback.
+ * @brief Points to a function that determins what game state to go to next and updates game data when necessary
  *
- * @param //TODO
+ * @param data game data that can influence the outcome of where to go next
  * @return STATE_ID enum of the next state to go to
  */
-typedef STATE_ID (*next_state_func)(void *args); //FIXME fix args
+typedef STATE_ID (*next_state_func)(struct game_data *data);
 
 /**
  * @struct game_state
- * @brief all necessary information pertaining to a decodable section of the vob file
+ * @brief all necessary information pertaining to a decodable section of the vob file and its position in the game
  */
 struct game_state {
     const uint32_t start_offset_bytes; /** the offset where decoding should start */
     const uint32_t end_offset_bytes;   /** the offset where decoding should end*/
     const bool audio_only;             /** if the corosponding section of the file only has audio information */
 
-    const next_state_func next_state; /** a function that returns the id of the next gamestate */ //TODO this will bneed to be passed some data
+    const next_state_func next_state; /** a function that returns the id of the next gamestate and updates the passed gamedata accordingly */
 
     const button *buttons;             /** TODO*/
     const uint8_t buttons_count;       /** TODO*/
