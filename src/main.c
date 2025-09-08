@@ -11,8 +11,7 @@
 #include <SDL3/SDL_main.h>
 
 #include <init.h>
-
-#include "game_logic.h"
+#include <game_logic.h>
 
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage
@@ -26,11 +25,25 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add 
         return SDL_APP_FAILURE;
     }
 
+    // TODO call the gameinit function
+
     return SDL_APP_CONTINUE; /* carry on with the program!*/
 }
 
 /* required function that runs once per frame */
 SDL_AppResult SDL_AppIterate(void *appstate) {
+    app_state *state = appstate;
+
+    float mx, my;
+    SDL_GetMouseState(&mx, &my);
+
+    // for each button in the current state
+    for (int i = 0; i < state->current_game_state->buttons_count; i++) {
+
+        //check if the mouse is within the bounds of the button
+
+    }
+
     return SDL_APP_CONTINUE;
 }
 

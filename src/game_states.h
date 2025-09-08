@@ -19,21 +19,6 @@
 struct game_data;
 
 /**
- * TODO
- *
- *
- */
-typedef struct button {
-    int32_t x;
-    int32_t y;
-    int32_t width;
-    int32_t height;
-
-    void (*on_click)();
-
-} button;
-
-/**
  * @enum STATE_ID
  * @brief names that corrospond to positions in the GAME_STATES array of game_states
  */
@@ -54,6 +39,20 @@ typedef enum STATE_ID {
 typedef STATE_ID (*next_state_func)(struct game_data *data);
 
 /**
+ * @typedef button
+ * @brief struct containing the dimenstions of a UI button, and what happens when it is clicked
+ */
+typedef struct button {
+    const int32_t x;                /**< the top of the buttons offset relative to the top of the window */
+    const int32_t y;                /**< the left of the buttons offset relative to the left of the window */
+    const int32_t height;           /**< height of the button in pixels*/
+    const int32_t width;            /**< width of the button in pixels */
+
+    const next_state_func on_click; /**< function to be triggered when the button is selected, returns the next state to go to */
+
+} button;
+
+/**
  * @struct game_state
  * @brief all necessary information pertaining to a decodable section of the vob file and its position in the game
  */
@@ -62,10 +61,10 @@ struct game_state {
     const uint32_t end_offset_bytes;   /** the offset where decoding should end*/
     const bool audio_only;             /** if the corosponding section of the file only has audio information */
 
-    const next_state_func next_state; /** a function that returns the id of the next gamestate and updates the passed gamedata accordingly */
+    const next_state_func next_state;  /** a function that returns the id of the next gamestate and updates the passed gamedata accordingly */
 
-    const button *buttons;             /** TODO*/
-    const uint8_t buttons_count;       /** TODO*/
+    const button *buttons;             /** array of buttons that corrospond to the section being decoded*/
+    const uint8_t buttons_count;       /** the size of the buttons array */
 };
 
 // Array of all game states, index aligns with the STATE_ID enum
