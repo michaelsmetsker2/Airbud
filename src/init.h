@@ -16,10 +16,6 @@
 #include <stdbool.h>
 
 #include <frame_queue.h>
-#include "game_states.h"
-
-// forward declaration of game_data, definition is in game_logic.h
-struct game_data;
 
 /**
  * @struct app_state
@@ -66,12 +62,5 @@ app_state *initialize();
  * @return true on success, false otherwise
  */
 bool start_threads(app_state *appstate);
-
-/**
- * @brief populates the game_data struct in appstate
- * @param data game data to populate
- * @return true on success, false otherwise
- */
-bool game_init(struct game_data *data);
 
 #endif //INIT_H

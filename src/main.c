@@ -11,7 +11,7 @@
 #include <SDL3/SDL_main.h>
 
 #include <init.h>
-#include <game_logic.h>
+#include <game_states.h>
 
 /* runs on startup */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add usage
@@ -34,15 +34,17 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) { //TODO add 
 SDL_AppResult SDL_AppIterate(void *appstate) {
     app_state *state = appstate;
 
-    float mx, my;
+    float mx;
+    float my;
     SDL_GetMouseState(&mx, &my);
 
+    // todo put this into its own function?
+
     // for each button in the current state
-    for (int i = 0; i < state->current_game_state->buttons_count; i++) {
+    //for (int i = 0; i < state->current_game_state->buttons_count; i++) {
+        //check if the mouse is within the bounds of the button then point to the button that it is hovering over
 
-        //check if the mouse is within the bounds of the button
-
-    }
+    //}
 
     return SDL_APP_CONTINUE;
 }
@@ -63,10 +65,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
                 change_game_state(appstate, MAIN_MENU_2);
 
                 /* todo button handling
-                for each button in the current state
-                    if click is on a button {
-                        do stuff :)
-                    }
+                if currenbtly hovering over a button
                 */
             }
             break;

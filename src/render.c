@@ -41,7 +41,7 @@ struct render_thread_args {
     SDL_AtomicU32 *total_audio_samples;   /**< total amount of audio samples pushed to the audio queue, used for syncing */
     SDL_AudioStream *audio_stream;        /**< audio stream where audio packets are queued */
 
-    const struct game_state **game_state; /**< pointer to the pointer to the current game state, not to be changed from this thread */
+    const struct game_state **game_state; /**< pointer to the pointer to the current game state, not to be changed from this thread */ //TODO figure out if this is needed
     SDL_Mutex *state_mutex;               /**< mutex to keep the main thread from changing teh game state mid-rendercycle */
 };
 
@@ -156,7 +156,9 @@ int render_frames(void *data) {
                 break;
             }
 
-            //TODO render other layers
+            //TODO render button selector
+
+            //TIDI render hud conditionally
         }
 
         //reuns when the main thread sets the exit flag and changes the gamestate

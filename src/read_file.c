@@ -14,6 +14,7 @@
 #include <read_file.h>
 #include <decode.h>
 #include <frame_queue.h>
+#include <game_states.h>
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

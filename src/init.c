@@ -104,16 +104,3 @@ bool  start_threads(app_state *appstate) {
 
     return true;
 }
-
-bool game_init(struct game_data *data) {
-
-    data->outs = 0;
-    data->strikes = 0;
-
-    //set seed to a random number between 1 and 900? then mod sumthin
-
-    //TODO fill
-
-
-    return true;
-}

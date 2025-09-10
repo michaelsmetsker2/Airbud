@@ -13,6 +13,9 @@
 #include <stdbool.h>
 #include <init.h>
 
+// forward declaration of STATE_ID, definition is in game_states.h
+typedef enum STATE_ID STATE_ID;
+
 /**
  * @struct game_data
  * @brief simple struct containing all game specific data
@@ -26,14 +29,21 @@ struct game_data {
     uint8_t     runs;
 };
 
+// PRE COMMANDS
+
+
+
+// POST COMMANDS
+
 /**
- * @brief cleanly updates the gamestate
- * makes sure all threads are aware of the change, should only be called from main thread
- *
- * @param appstate basic information struct from main thread
- * @param destination gamestate to change to
- * @return true on success, false otherwise
+ * @brief The following are all end of decoding functions, they make up the internal game
+ * logic that will run at the end of a decoded chunk and determine where the program goes next
+ * @param data game_data struct containing all gameplay vars
+ * @return the ID of the next state to go to
  */
-bool change_game_state(app_state *appstate, STATE_ID destination);
+STATE_ID next_MAIN_MENU_1(struct game_data *data);
+STATE_ID next_MAIN_MENU_2(struct game_data *data);
+STATE_ID next_MAIN_MENU_3(struct game_data *data);
+
 
 #endif //GAME_LOGIC_H
